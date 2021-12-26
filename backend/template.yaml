@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: stage
+    AllowedValues:
+      - stage
+      - prod
+
+Globals:
+  Function:
+    Runtime: go1.x
+    MemorySize: 128 
+    Timeout: 20
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+
+Resources:
+  RestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Description: CRUD Rest API connected with the lambda functions
+      StageName: !Ref Environment
+      OpenApiVersion: 3.0.3
+      
+  FilmsTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: films
+      PrimaryKey:
+          Name: id
+          Type: String
+
+  PostFilm:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Used to create a new film entry
+      Handler:  postFilm
+      CodeUri: ./functions/postFilm
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Method: POST
+            Path: /api/v1/films
+            RestApiId:
+                Ref: RestApi
+
+Outputs:
+  FilmsTableId:
+    Description: films table id
+    Value: !Ref FilmsTable
+  APIEndpointId:
+    Description: endpoint id
+    Value: !Ref RestApi
+  APIEndpointStage:
+    Description: stage endpoint for stage
+    Value: !Sub 'https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/prod'
