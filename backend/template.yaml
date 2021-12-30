@@ -31,15 +31,15 @@ Resources:
     Properties:
       TableName: films
       PrimaryKey:
-          Name: id
+          Name: GUID
           Type: String
 
   PostFilm:
     Type: AWS::Serverless::Function
     Properties:
       Description: Used to create a new film entry
-      Handler:  postFilm
-      CodeUri: ./functions/postFilm
+      CodeUri: functions/postFilm
+      Handler: main
       Events:
         ApiEvent:
           Type: Api
@@ -48,6 +48,105 @@ Resources:
             Path: /api/v1/films
             RestApiId:
                 Ref: RestApi
+  GetFilms:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Used to get the films
+      CodeUri: functions/getFilms
+      Handler: main
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/films
+            Method: GET
+            RestApiId:
+              Ref: RestApi
+  GetFilm:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Used to get a single film
+      CodeUri: functions/getFilm
+      Handler: main
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/films/{guid}
+            Method: GET
+            RestApiId:
+              Ref: RestApi
+  DeleteFilm:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Used to delete a film
+      Handler: main
+      CodeUri: functions/deleteFilm
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/films/{guid}
+            Method: DELETE
+            RestApiId:
+              Ref: RestApi
+  PutFilm:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Used to update a movie
+      Handler: main
+      CodeUri: functions/putFilm
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/films/{guid}
+            Method: PUT
+            RestApiId:
+              Ref: RestApi
+  UploadFilm:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Upload a movie to an s3 bucket
+      Handler: main
+      CodeUri: functions/uploadFilm
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/films/{guid}/upload
+            Method: PUT
+            RestApiId:
+              Ref: RestApi
+  PutSubtitle:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Upload a subtitle for a particular film
+      Handler: main
+      CodeUri: functions/putSubtitle
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/films/{guid}/subtitle
+            Method: PUT
+            RestApiId:
+              Ref: RestApi
+
+  DeleteSubtitle:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Delete the subtitle of a particular film
+      Handler: main
+      CodeUri: functions/deleteSubtitle
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /api/v1/films/{guid}/subtitle
+            Method: DELETE
+            RestApiId:
+              Ref: RestApi
 
 Outputs:
   FilmsTableId:

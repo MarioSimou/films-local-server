@@ -1,41 +1,78 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
+	"log"
 	"net/http"
+	"time"
+
+	"github.com/MarioSimou/films-local-server/backend/packages/models"
+	"github.com/MarioSimou/films-local-server/backend/packages/utils"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/google/uuid"
 
 	"github.com/aws/aws-lambda-go/events"
 	runtime "github.com/aws/aws-lambda-go/lambda"
 )
 
-type Response struct {
-	Status  int
-	Success bool
-	Message string
-	Data    interface{}
+var (
+	cfg            aws.Config
+	dynamoDBClient *dynamodb.Client
+)
+
+type PostFilm struct {
+	Name        string `json:"name" validate:"required"`
+	Description string `json:"description" validate:"omitempty,max=1000"`
 }
 
-func newResponse(status int, data interface{}) Response {
-	switch status {
-	case http.StatusOK:
-		return Response{Status: status, Success: true, Data: data}
-	case http.StatusNoContent:
-		return Response{Status: status, Success: true}
-	default:
-		return Response{Status: status, Success: false, Message: data.(string)}
+func init() {
+	var e error
+
+	if dynamoDBClient, e = utils.NewDynamoDBClient(context.Background()); e != nil {
+		log.Fatalf("error: %v", e)
 	}
 }
 
-func newAPIResponse(status int, data interface{}) events.APIGatewayProxyResponse {
-	var body, _ = json.Marshal(newResponse(status, data))
-	return events.APIGatewayProxyResponse{
-		StatusCode: status,
-		Body:       string(body),
-	}
-}
+func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	var reqBody PostFilm
+	var now = time.Now()
+	var validate = utils.NewValidator()
+	var dynamoDBItem map[string]types.AttributeValue
+	var e error
 
-func handler() (events.APIGatewayProxyResponse, error) {
-	return newAPIResponse(http.StatusOK, "post film"), nil
+	if e := utils.DecodeEventBody(request.Body, &reqBody); e != nil {
+		return utils.NewAPIResponse(http.StatusBadRequest, e), nil
+	}
+
+	if e := validate.Struct(reqBody); e != nil {
+		return utils.NewAPIResponse(http.StatusBadRequest, e), nil
+	}
+
+	var film = models.Film{
+		GUID:        uuid.New().String(),
+		Name:        reqBody.Name,
+		Description: reqBody.Description,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+
+	if dynamoDBItem, e = attributevalue.MarshalMap(film); e != nil {
+		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
+	}
+
+	var putItemInput = dynamodb.PutItemInput{
+		Item:      dynamoDBItem,
+		TableName: aws.String("films"),
+	}
+
+	if _, e = dynamoDBClient.PutItem(ctx, &putItemInput); e != nil {
+		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
+	}
+
+	return utils.NewAPIResponse(http.StatusOK, film), nil
 }
 
 func main() {
