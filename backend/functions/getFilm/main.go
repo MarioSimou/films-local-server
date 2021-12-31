@@ -34,11 +34,10 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	}
 
 	if film, e = utils.GetOneFilm(ctx, guid, dynamoDBClient); e != nil {
+		if e == utils.ErrFilmNotFound {
+			return utils.NewAPIResponse(http.StatusNotFound, e), nil
+		}
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
-	}
-
-	if film.GUID == "" {
-		return utils.NewAPIResponse(http.StatusNotFound, utils.ErrDocNotFound), nil
 	}
 
 	return utils.NewAPIResponse(http.StatusOK, film), nil

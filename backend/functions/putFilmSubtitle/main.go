@@ -18,7 +18,7 @@ import (
 var (
 	dynamoDBClient *dynamodb.Client
 	s3Client       *s3.Client
-	uploader       *manager.Uploader
+	s3Uploader     *manager.Uploader
 )
 
 func init() {
@@ -27,16 +27,18 @@ func init() {
 	if dynamoDBClient, e = utils.NewDynamoDBClient(ctx); e != nil {
 		log.Fatalf("Error: %v\n", e)
 	}
+
 	if s3Client, e = utils.NewS3Client(ctx); e != nil {
 		log.Fatalf("Error: %v\n", e)
 	}
-	if uploader, e = utils.NewS3Uploader(ctx); e != nil {
+
+	if s3Uploader, e = utils.NewS3Uploader(ctx); e != nil {
 		log.Fatalf("Error: %v\n", e)
 	}
 }
 
 func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	var filmGUID = req.PathParameters["guid"]
+	var guid = req.PathParameters["guid"]
 	var validate = utils.NewValidator()
 	var currentFilm *models.Film
 	var e error
@@ -44,38 +46,42 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	if e := utils.IsMultipartFormData(req.Headers["Content-Type"]); e != nil {
 		return utils.NewAPIResponse(http.StatusBadRequest, e), nil
 	}
-	if e := validate.Var(filmGUID, "required,uuid4"); e != nil {
+
+	if e := validate.Var(guid, "required,uuid4"); e != nil {
 		return utils.NewAPIResponse(http.StatusBadRequest, e), nil
 	}
+
 	if e := validate.Var(req.Body, "required,multibyte"); e != nil {
 		return utils.NewAPIResponse(http.StatusBadRequest, e), nil
 	}
-	if currentFilm, e = utils.GetOneFilm(ctx, filmGUID, dynamoDBClient); e != nil {
+
+	if currentFilm, e = utils.GetOneFilm(ctx, guid, dynamoDBClient); e != nil {
 		if e == utils.ErrFilmNotFound {
 			return utils.NewAPIResponse(http.StatusNotFound, e), nil
 		}
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 
-	var filmBucketKey = utils.GetFilmBucketKey(currentFilm.GUID)
-	if currentFilm.Location != "" {
-		if e := utils.DeleteObject(ctx, filmBucketKey, s3Client); e != nil {
+	var subtitleKey = utils.GetSubtitleBucketKey(currentFilm.GUID)
+	if currentFilm.Subtitle != "" {
+		if e := utils.DeleteObject(ctx, subtitleKey, s3Client); e != nil {
 			return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 		}
 	}
 
 	var uploadOutput *manager.UploadOutput
-	if uploadOutput, e = utils.UploadObject(ctx, filmBucketKey, req.Body, types.StorageClassGlacierIr, uploader); e != nil {
+	if uploadOutput, e = utils.UploadObject(ctx, subtitleKey, req.Body, types.StorageClassGlacierIr, s3Uploader); e != nil {
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 
-	currentFilm.Location = uploadOutput.Location
-	var film *models.Film
-	if film, e = utils.PutFilm(ctx, *currentFilm, dynamoDBClient); e != nil {
+	currentFilm.Subtitle = uploadOutput.Location
+
+	var newFilm *models.Film
+	if newFilm, e = utils.PutFilm(ctx, *currentFilm, dynamoDBClient); e != nil {
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 
-	return utils.NewAPIResponse(http.StatusOK, film), nil
+	return utils.NewAPIResponse(http.StatusOK, newFilm), nil
 }
 
 func main() {

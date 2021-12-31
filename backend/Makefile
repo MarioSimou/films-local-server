@@ -16,8 +16,8 @@ build-functions:
 	@go build -o ./.aws-sam/build/DeleteFilm/main ./functions/deleteFilm/main.go
 	@go build -o ./.aws-sam/build/PutFilm/main ./functions/putFilm/main.go
 	@go build -o ./.aws-sam/build/UploadFilm/main ./functions/uploadFilm/main.go
-	@go build -o ./.aws-sam/build/DeleteSubtitle/main ./functions/deleteSubtitle/main.go
-	@go build -o ./.aws-sam/build/PutSubtitle/main ./functions/putSubtitle/main.go
+	@go build -o ./.aws-sam/build/PutFilmSubtitle/main ./functions/putFilmSubtitle/main.go
+	@go build -o ./.aws-sam/build/DeleteFilmSubtitle/main ./functions/deleteFilmSubtitle/main.go
 
 watch-build-functions:
 	@reflex -s -r '\.go$$' -- make build-functions

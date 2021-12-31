@@ -33,5 +33,8 @@ func NewAPIResponse(status int, data interface{}) events.APIGatewayProxyResponse
 	return events.APIGatewayProxyResponse{
 		StatusCode: status,
 		Body:       string(body),
+		Headers: map[string]string{
+			"Accept": "application/json",
+		},
 	}
 }

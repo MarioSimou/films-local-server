@@ -65,7 +65,7 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 
 	var putItemInput = dynamodb.PutItemInput{
 		Item:      dynamoDBItem,
-		TableName: aws.String("films"),
+		TableName: aws.String(models.FilmsTableName),
 	}
 
 	if _, e = dynamoDBClient.PutItem(ctx, &putItemInput); e != nil {

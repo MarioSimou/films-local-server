@@ -40,7 +40,7 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	}
 
 	if len(films) == 0 {
-		return utils.NewAPIResponse(http.StatusNotFound, utils.ErrDocNotFound), nil
+		return utils.NewAPIResponse(http.StatusNotFound, utils.ErrFilmNotFound), nil
 	}
 
 	return utils.NewAPIResponse(http.StatusOK, films), nil

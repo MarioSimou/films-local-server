@@ -35,28 +35,31 @@ services:
       - dynamodb
   dynamodb:
     container_name: dynamodb
-    image: localstack/localstack-light:0.13.2
+    image: localstack/localstack-full:0.13.2
     ports:
       - "3001:4566"
     environment:
       - LOCALSTACK_SERVICES=dynamodb
       - DATA_DIR=/tmp/localstack/data
+      - DYNAMODB_SHARE_DB=1
       - EDGE_PORT=4566
+      - DEBUG=0
     volumes:
       - type: volume
-        source: s3-data
+        source: dynamodb-data
         target: /tmp/localstack/data
     networks:
       - backend-network    
   s3:
     container_name: s3
-    image: localstack/localstack-light:0.13.2
+    image: localstack/localstack-full:0.13.2
     ports:
       - "3003:4566"
     environment:
       - LOCALSTACK_SERVICES=s3
       - DATA_DIR=/tmp/localstack/data
       - EDGE_PORT=4566
+      - DEBUG=0
     volumes:
       - type: volume
         source: s3-data

@@ -118,12 +118,12 @@ Resources:
             Method: PUT
             RestApiId:
               Ref: RestApi
-  PutSubtitle:
+  PutFilmSubtitle:
     Type: AWS::Serverless::Function
     Properties:
       Description: Upload a subtitle for a particular film
       Handler: main
-      CodeUri: functions/putSubtitle
+      CodeUri: functions/putFilmSubtitle
       Events:
         ApiEvent:
           Type: Api
@@ -132,13 +132,12 @@ Resources:
             Method: PUT
             RestApiId:
               Ref: RestApi
-
-  DeleteSubtitle:
+  DeleteFilmSubtitle:
     Type: AWS::Serverless::Function
     Properties:
       Description: Delete the subtitle of a particular film
       Handler: main
-      CodeUri: functions/deleteSubtitle
+      CodeUri: functions/deleteFilmSubtitle
       Events:
         ApiEvent:
           Type: Api
