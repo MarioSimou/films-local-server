@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/MarioSimou/films-local-server/backend/packages/models"
-	"github.com/MarioSimou/films-local-server/backend/packages/utils"
+	"github.com/MarioSimou/songs-local-server/backend/packages/models"
+	"github.com/MarioSimou/songs-local-server/backend/packages/utils"
 	"github.com/aws/aws-lambda-go/events"
 	runtime "github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -31,42 +31,38 @@ func init() {
 }
 
 func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	var filmGUID = req.PathParameters["guid"]
+	var songGUID = req.PathParameters["guid"]
 	var validate = utils.NewValidator()
-	var currentFilm *models.Film
-	var newFilm *models.Film
+	var currentSong *models.Song
+	var newSong *models.Song
 	var e error
 
-	if e := validate.Var(filmGUID, "required,uuid4"); e != nil {
+	if e := validate.Var(songGUID, "required,uuid4"); e != nil {
 		return utils.NewAPIResponse(http.StatusBadRequest, e), nil
 	}
 
-	if currentFilm, e = utils.GetOneFilm(ctx, filmGUID, dynamoDBClient); e != nil {
-		if e == utils.ErrFilmNotFound {
+	if currentSong, e = utils.GetOneSong(ctx, songGUID, dynamoDBClient); e != nil {
+		if e == utils.ErrSongNotFound {
 			return utils.NewAPIResponse(http.StatusNotFound, e), nil
 		}
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 
-	if currentFilm.Subtitle == "" {
-		return utils.NewAPIResponse(http.StatusNotFound, utils.ErrSubtitleNotFound), nil
+	if currentSong.Image == "" {
+		return utils.NewAPIResponse(http.StatusNotFound, utils.ErrImageNotFound), nil
 	}
 
-	var subtitleKey = utils.GetSubtitleBucketKey(currentFilm.GUID)
-
-	if e := utils.DeleteObject(ctx, subtitleKey, s3Client); e != nil {
-		// if e == utils.ErrS3ObjectNotFound {
-		// 	return utils.NewAPIResponse(http.StatusNotFound, e), nil
-		// }
+	var imageKey = utils.GetBucketKeyFromURL(currentSong.Image)
+	if e := utils.DeleteObject(ctx, imageKey, s3Client); e != nil {
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 
-	currentFilm.Subtitle = ""
-	if newFilm, e = utils.PutFilm(ctx, *currentFilm, dynamoDBClient); e != nil {
+	currentSong.Image = ""
+	if newSong, e = utils.PutSong(ctx, *currentSong, dynamoDBClient); e != nil {
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 
-	return utils.NewAPIResponse(http.StatusOK, newFilm), nil
+	return utils.NewAPIResponse(http.StatusOK, newSong), nil
 }
 
 func main() {

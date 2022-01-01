@@ -1,6 +1,8 @@
 package utils
 
-import "regexp"
+import (
+	"regexp"
+)
 
 func IsMultipartFormData(headerValue string) error {
 	var regex = regexp.MustCompile("multipart\\/form-data")

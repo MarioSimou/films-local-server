@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/MarioSimou/films-local-server/backend/packages/models"
-	"github.com/MarioSimou/films-local-server/backend/packages/utils"
+	"github.com/MarioSimou/songs-local-server/backend/packages/models"
+	"github.com/MarioSimou/songs-local-server/backend/packages/utils"
 	"github.com/aws/aws-lambda-go/events"
 	runtime "github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
@@ -37,51 +37,47 @@ func init() {
 	}
 }
 
-func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	var guid = req.PathParameters["guid"]
-	var validate = utils.NewValidator()
-	var currentFilm *models.Film
+func handler(ctx context.Context, event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	var songGUID = event.PathParameters["guid"]
+	var currentSong *models.Song
 	var e error
+	var m *utils.Multipart
 
-	if e := utils.IsMultipartFormData(req.Headers["Content-Type"]); e != nil {
+	if e := utils.IsMultipartFormData(event.Headers["Content-Type"]); e != nil {
 		return utils.NewAPIResponse(http.StatusBadRequest, e), nil
 	}
 
-	if e := validate.Var(guid, "required,uuid4"); e != nil {
+	if m, e = utils.ParseBodyToMultipart(event); e != nil {
 		return utils.NewAPIResponse(http.StatusBadRequest, e), nil
 	}
 
-	if e := validate.Var(req.Body, "required,multibyte"); e != nil {
-		return utils.NewAPIResponse(http.StatusBadRequest, e), nil
-	}
-
-	if currentFilm, e = utils.GetOneFilm(ctx, guid, dynamoDBClient); e != nil {
-		if e == utils.ErrFilmNotFound {
+	if currentSong, e = utils.GetOneSong(ctx, songGUID, dynamoDBClient); e != nil {
+		if e == utils.ErrSongNotFound {
 			return utils.NewAPIResponse(http.StatusNotFound, e), nil
 		}
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 
-	var subtitleKey = utils.GetSubtitleBucketKey(currentFilm.GUID)
-	if currentFilm.Subtitle != "" {
-		if e := utils.DeleteObject(ctx, subtitleKey, s3Client); e != nil {
+	var imageBucketKey = utils.GetBucketKey(utils.ImageType, currentSong.GUID, m.Ext)
+	if currentSong.Image != "" {
+		if e := utils.DeleteObject(ctx, imageBucketKey, s3Client); e != nil {
 			return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 		}
 	}
 
 	var uploadOutput *manager.UploadOutput
-	if uploadOutput, e = utils.UploadObject(ctx, subtitleKey, req.Body, types.StorageClassGlacierIr, s3Uploader); e != nil {
+	if uploadOutput, e = utils.UploadObject(ctx, imageBucketKey, m, types.StorageClassStandard, s3Uploader); e != nil {
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 
-	currentFilm.Subtitle = uploadOutput.Location
+	currentSong.Image = uploadOutput.Location
 
-	var newFilm *models.Film
-	if newFilm, e = utils.PutFilm(ctx, *currentFilm, dynamoDBClient); e != nil {
+	var newSong *models.Song
+	if newSong, e = utils.PutSong(ctx, *currentSong, dynamoDBClient); e != nil {
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 
-	return utils.NewAPIResponse(http.StatusOK, newFilm), nil
+	return utils.NewAPIResponse(http.StatusOK, newSong), nil
 }
 
 func main() {

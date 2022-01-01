@@ -3,8 +3,8 @@ package utils
 import "errors"
 
 var (
-	ErrSubtitleNotFound   = errors.New("error: subtitle not found")
+	ErrImageNotFound      = errors.New("error: image not found")
 	ErrS3ObjectNotFound   = errors.New("error: s3 object not found")
-	ErrInvalidContentType = errors.New("error: inalid content type")
-	ErrFilmNotFound       = errors.New("error: film not found")
+	ErrInvalidContentType = errors.New("error: invalid content type")
+	ErrSongNotFound       = errors.New("error: song not found")
 )

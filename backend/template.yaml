@@ -17,6 +17,8 @@ Globals:
     Environment:
       Variables:
         ENVIRONMENT: !Ref Environment
+  Api:
+    BinaryMediaTypes: ['*~1*']
 
 Resources:
   RestApi:
@@ -26,131 +28,131 @@ Resources:
       StageName: !Ref Environment
       OpenApiVersion: 3.0.3
       
-  FilmsTable:
+  SongsTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
-      TableName: films
+      TableName: songs
       PrimaryKey:
           Name: GUID
           Type: String
 
-  PostFilm:
+  PostSong:
     Type: AWS::Serverless::Function
     Properties:
-      Description: Used to create a new film entry
-      CodeUri: functions/postFilm
+      Description: Used to create a new song entry
+      CodeUri: functions/postSong
       Handler: main
       Events:
         ApiEvent:
           Type: Api
           Properties:
             Method: POST
-            Path: /api/v1/films
+            Path: /api/v1/songs
             RestApiId:
                 Ref: RestApi
-  GetFilms:
+  GetSongs:
     Type: AWS::Serverless::Function
     Properties:
-      Description: Used to get the films
-      CodeUri: functions/getFilms
+      Description: Used to get the songs
+      CodeUri: functions/getSongs
       Handler: main
       Events:
         ApiEvent:
           Type: Api
           Properties:
-            Path: /api/v1/films
+            Path: /api/v1/songs
             Method: GET
             RestApiId:
               Ref: RestApi
-  GetFilm:
+  GetSong:
     Type: AWS::Serverless::Function
     Properties:
-      Description: Used to get a single film
-      CodeUri: functions/getFilm
+      Description: Used to get a single song
+      CodeUri: functions/getSong
       Handler: main
       Events:
         ApiEvent:
           Type: Api
           Properties:
-            Path: /api/v1/films/{guid}
+            Path: /api/v1/songs/{guid}
             Method: GET
             RestApiId:
               Ref: RestApi
-  DeleteFilm:
+  DeleteSong:
     Type: AWS::Serverless::Function
     Properties:
-      Description: Used to delete a film
+      Description: Used to delete a song
       Handler: main
-      CodeUri: functions/deleteFilm
+      CodeUri: functions/deleteSong
       Events:
         ApiEvent:
           Type: Api
           Properties:
-            Path: /api/v1/films/{guid}
+            Path: /api/v1/songs/{guid}
             Method: DELETE
             RestApiId:
               Ref: RestApi
-  PutFilm:
+  PutSong:
     Type: AWS::Serverless::Function
     Properties:
-      Description: Used to update a movie
+      Description: Used to update a song
       Handler: main
-      CodeUri: functions/putFilm
+      CodeUri: functions/putSong
       Events:
         ApiEvent:
           Type: Api
           Properties:
-            Path: /api/v1/films/{guid}
+            Path: /api/v1/songs/{guid}
             Method: PUT
             RestApiId:
               Ref: RestApi
-  UploadFilm:
+  UploadSong:
     Type: AWS::Serverless::Function
     Properties:
-      Description: Upload a movie to an s3 bucket
+      Description: Upload a song to an s3 bucket
       Handler: main
-      CodeUri: functions/uploadFilm
+      CodeUri: functions/uploadSong
       Events:
         ApiEvent:
           Type: Api
           Properties:
-            Path: /api/v1/films/{guid}/upload
+            Path: /api/v1/songs/{guid}/upload
             Method: PUT
             RestApiId:
               Ref: RestApi
-  PutFilmSubtitle:
-    Type: AWS::Serverless::Function
-    Properties:
-      Description: Upload a subtitle for a particular film
-      Handler: main
-      CodeUri: functions/putFilmSubtitle
-      Events:
-        ApiEvent:
-          Type: Api
-          Properties:
-            Path: /api/v1/films/{guid}/subtitle
-            Method: PUT
-            RestApiId:
-              Ref: RestApi
-  DeleteFilmSubtitle:
-    Type: AWS::Serverless::Function
-    Properties:
-      Description: Delete the subtitle of a particular film
-      Handler: main
-      CodeUri: functions/deleteFilmSubtitle
-      Events:
-        ApiEvent:
-          Type: Api
-          Properties:
-            Path: /api/v1/films/{guid}/subtitle
-            Method: DELETE
-            RestApiId:
-              Ref: RestApi
+  PutSongImage:
+        Type: AWS::Serverless::Function
+        Properties:
+          Description: Upload an image of a particular song
+          Handler: main
+          CodeUri: functions/putSongImage
+          Events:
+            ApiEvent:
+              Type: Api
+              Properties:
+                Path: /api/v1/songs/{guid}/image
+                Method: PUT
+                RestApiId:
+                  Ref: RestApi
+  DeleteSongImage:
+      Type: AWS::Serverless::Function
+      Properties:
+        Description: Delete an image of a particular song
+        Handler: main
+        CodeUri: functions/deleteSongImage
+        Events:
+          ApiEvent:
+            Type: Api
+            Properties:
+              Path: /api/v1/songs/{guid}/image
+              Method: DELETE
+              RestApiId:
+                Ref: RestApi
 
 Outputs:
-  FilmsTableId:
-    Description: films table id
-    Value: !Ref FilmsTable
+  SongsTableId:
+    Description: Songs table id
+    Value: !Ref SongsTable
   APIEndpointId:
     Description: endpoint id
     Value: !Ref RestApi

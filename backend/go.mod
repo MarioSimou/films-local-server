@@ -1,4 +1,4 @@
-module github.com/MarioSimou/films-local-server/backend
+module github.com/MarioSimou/songs-local-server/backend
 
 go 1.15
 

@@ -1,15 +1,24 @@
 package utils
 
-import "fmt"
+import (
+	"fmt"
+	"net/url"
+	"strings"
+)
 
-func GetSubtitleBucketKey(guid string) string {
-	return fmt.Sprintf("%s/subtitle.srt", guid)
+type FileType = string
+
+var (
+	ImageType FileType = "image"
+	SongType  FileType = "song"
+)
+
+func GetBucketKey(ft FileType, songGUID, ext string) string {
+	return fmt.Sprintf("%s/%s%s", songGUID, ft, ext)
 }
 
-func GetFilmBucketKey(guid string) string {
-	return fmt.Sprintf("%s/film.mp4", guid)
-}
-
-func GetImageBucketKey(guid string, ext string) string {
-	return fmt.Sprintf("%s/image.%s", guid, ext)
+func GetBucketKeyFromURL(href string) string {
+	var u, _ = url.Parse(href)
+	var oldPart = fmt.Sprintf("/%s/", S3_BUCKET_NAME)
+	return strings.Replace(u.Path, oldPart, "", -1)
 }

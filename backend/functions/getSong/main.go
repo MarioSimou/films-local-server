@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/MarioSimou/films-local-server/backend/packages/models"
-	"github.com/MarioSimou/films-local-server/backend/packages/utils"
+	"github.com/MarioSimou/songs-local-server/backend/packages/models"
+	"github.com/MarioSimou/songs-local-server/backend/packages/utils"
 	"github.com/aws/aws-lambda-go/events"
 	runtime "github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -25,22 +25,22 @@ func init() {
 
 func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	var e error
-	var film *models.Film
+	var song *models.Song
+	var songGUID = req.PathParameters["guid"]
 	var validate = utils.NewValidator()
-	var guid = req.PathParameters["guid"]
 
-	if e := validate.Var(guid, "required,uuid4"); e != nil {
+	if e := validate.Var(songGUID, "required,uuid4"); e != nil {
 		return utils.NewAPIResponse(http.StatusBadRequest, e), nil
 	}
 
-	if film, e = utils.GetOneFilm(ctx, guid, dynamoDBClient); e != nil {
-		if e == utils.ErrFilmNotFound {
+	if song, e = utils.GetOneSong(ctx, songGUID, dynamoDBClient); e != nil {
+		if e == utils.ErrSongNotFound {
 			return utils.NewAPIResponse(http.StatusNotFound, e), nil
 		}
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 
-	return utils.NewAPIResponse(http.StatusOK, film), nil
+	return utils.NewAPIResponse(http.StatusOK, song), nil
 }
 
 func main() {

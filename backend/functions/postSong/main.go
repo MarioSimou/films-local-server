@@ -6,12 +6,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/MarioSimou/films-local-server/backend/packages/models"
-	"github.com/MarioSimou/films-local-server/backend/packages/utils"
+	"github.com/MarioSimou/songs-local-server/backend/packages/models"
+	"github.com/MarioSimou/songs-local-server/backend/packages/utils"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/google/uuid"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -23,27 +21,28 @@ var (
 	dynamoDBClient *dynamodb.Client
 )
 
-type PostFilm struct {
+type PostSong struct {
 	Name        string `json:"name" validate:"required"`
 	Description string `json:"description" validate:"omitempty,max=1000"`
 }
 
 func init() {
 	var e error
+	var ctx = context.Background()
 
-	if dynamoDBClient, e = utils.NewDynamoDBClient(context.Background()); e != nil {
+	if dynamoDBClient, e = utils.NewDynamoDBClient(ctx); e != nil {
 		log.Fatalf("error: %v", e)
 	}
 }
 
-func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	var reqBody PostFilm
+func handler(ctx context.Context, event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	var reqBody PostSong
 	var now = time.Now()
 	var validate = utils.NewValidator()
-	var dynamoDBItem map[string]types.AttributeValue
+	var newSong *models.Song
 	var e error
 
-	if e := utils.DecodeEventBody(request.Body, &reqBody); e != nil {
+	if e := utils.DecodeEventBody(event.Body, &reqBody); e != nil {
 		return utils.NewAPIResponse(http.StatusBadRequest, e), nil
 	}
 
@@ -51,7 +50,7 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		return utils.NewAPIResponse(http.StatusBadRequest, e), nil
 	}
 
-	var film = models.Film{
+	var song = models.Song{
 		GUID:        uuid.New().String(),
 		Name:        reqBody.Name,
 		Description: reqBody.Description,
@@ -59,20 +58,11 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		UpdatedAt:   now,
 	}
 
-	if dynamoDBItem, e = attributevalue.MarshalMap(film); e != nil {
+	if newSong, e = utils.PutSong(ctx, song, dynamoDBClient); e != nil {
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 
-	var putItemInput = dynamodb.PutItemInput{
-		Item:      dynamoDBItem,
-		TableName: aws.String(models.FilmsTableName),
-	}
-
-	if _, e = dynamoDBClient.PutItem(ctx, &putItemInput); e != nil {
-		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
-	}
-
-	return utils.NewAPIResponse(http.StatusOK, film), nil
+	return utils.NewAPIResponse(http.StatusOK, newSong), nil
 }
 
 func main() {

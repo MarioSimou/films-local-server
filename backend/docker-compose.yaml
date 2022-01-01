@@ -5,7 +5,7 @@ volumes:
   s3-data:
 networks:
   backend-network:
-    name: films-local-server-backend-network 
+    name: songs-local-server-backend-network 
 
 services:
   watcher:
