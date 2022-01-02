@@ -4,7 +4,7 @@
             "Sid": "bucket policy",
             "Effect": "Allow",
             "Action": "s3:*",
-            "Resource": "arn:aws:s3:::songs-local-server/*"        
+            "Resource": "arn:aws:s3:::songs-backend-bucket/*"        
         }
     ]
 }

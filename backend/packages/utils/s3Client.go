@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
+	"os"
 	"strings"
 
+	repoTypes "github.com/MarioSimou/songs-local-server/backend/packages/types"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -14,14 +17,20 @@ import (
 )
 
 var (
-	S3_BUCKET_NAME = "songs-local-server"
+	S3_BUCKET_NAME = "songs-backend-bucket"
 )
 
 func NewS3Client(ctx context.Context) (*s3.Client, error) {
 	var e error
 	var cfg *aws.Config
+	var s3Endpoint = os.Getenv("AWS_S3_ENDPOINT")
+	var env repoTypes.EnvironmentType = os.Getenv("ENVIRONMENT")
 
-	if cfg, e = GetAWSConfig(ctx, "http://s3:4566"); e != nil {
+	if env == repoTypes.Dev && len(s3Endpoint) == 0 {
+		return nil, fmt.Errorf("error: environment '%s' with endpoint '%s'", env, s3Endpoint)
+	}
+
+	if cfg, e = GetAWSConfig(ctx, env, s3Endpoint); e != nil {
 		return nil, e
 	}
 
@@ -53,7 +62,7 @@ func HeadObject(ctx context.Context, key string, s3Client *s3.Client) error {
 		var apiErr smithy.APIError
 		if errors.As(e, &apiErr); e != nil {
 			if apiErr.ErrorCode() == "NotFound" {
-				return ErrS3ObjectNotFound
+				return repoTypes.ErrS3ObjectNotFound
 			}
 		}
 		return e
@@ -84,7 +93,7 @@ func UploadObject(ctx context.Context, key string, m *Multipart, storageClass ty
 		Bucket:       &S3_BUCKET_NAME,
 		Key:          &key,
 		Body:         bytes.NewReader(m.Body),
-		StorageClass: types.StorageClassStandard,
+		StorageClass: storageClass,
 	}
 
 	return uploader.Upload(ctx, putObjectInput)

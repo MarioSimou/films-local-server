@@ -2,9 +2,10 @@ package utils
 
 import (
 	"context"
+	"fmt"
 	"os"
 
-	"github.com/MarioSimou/songs-local-server/backend/packages/models"
+	repoTypes "github.com/MarioSimou/songs-local-server/backend/packages/types"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -12,8 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-func GetAWSConfig(ctx context.Context, endpoint string) (*aws.Config, error) {
-	var env = os.Getenv("ENVIRONMENT")
+func GetAWSConfig(ctx context.Context, env repoTypes.EnvironmentType, endpoint string) (*aws.Config, error) {
 	var cfg aws.Config
 	var e error
 
@@ -45,21 +45,27 @@ func GetAWSConfig(ctx context.Context, endpoint string) (*aws.Config, error) {
 func NewDynamoDBClient(ctx context.Context) (*dynamodb.Client, error) {
 	var e error
 	var cfg *aws.Config
+	var dynamoDBEndpoint = os.Getenv("AWS_DYNAMODB_ENDPOINT")
+	var env repoTypes.EnvironmentType = os.Getenv("ENVIRONMENT")
 
-	if cfg, e = GetAWSConfig(ctx, "http://dynamodb:4566"); e != nil {
+	if env == repoTypes.Dev && len(dynamoDBEndpoint) == 0 {
+		return nil, fmt.Errorf("error: environment '%s' with endpoint '%s'", env, dynamoDBEndpoint)
+	}
+
+	if cfg, e = GetAWSConfig(ctx, env, dynamoDBEndpoint); e != nil {
 		return nil, e
 	}
 
 	return dynamodb.NewFromConfig(*cfg), nil
 }
 
-func GetOneSong(ctx context.Context, guid string, dynamoClient *dynamodb.Client) (*models.Song, error) {
+func GetOneSong(ctx context.Context, guid string, dynamoClient *dynamodb.Client) (*repoTypes.Song, error) {
 	var guidKey, _ = attributevalue.Marshal(guid)
 	var getSongOutput = &dynamodb.GetItemOutput{}
 	var e error
-	var song models.Song
+	var song repoTypes.Song
 	var getSongInput = &dynamodb.GetItemInput{
-		TableName: aws.String(models.SongsTableName),
+		TableName: aws.String(repoTypes.SongsTableName),
 		Key: map[string]types.AttributeValue{
 			"GUID": guidKey,
 		},
@@ -74,17 +80,17 @@ func GetOneSong(ctx context.Context, guid string, dynamoClient *dynamodb.Client)
 	}
 
 	if song.GUID == "" {
-		return nil, ErrSongNotFound
+		return nil, repoTypes.ErrSongNotFound
 	}
 
 	return &song, nil
 }
 
-func PutSong(ctx context.Context, payload models.Song, dynamoDBClient *dynamodb.Client) (*models.Song, error) {
+func PutSong(ctx context.Context, payload repoTypes.Song, dynamoDBClient *dynamodb.Client) (*repoTypes.Song, error) {
 	var e error
 	var item, _ = attributevalue.MarshalMap(payload)
 	var putSongInput = &dynamodb.PutItemInput{
-		TableName:    &models.SongsTableName,
+		TableName:    &repoTypes.SongsTableName,
 		Item:         item,
 		ReturnValues: types.ReturnValueNone,
 	}
@@ -93,7 +99,7 @@ func PutSong(ctx context.Context, payload models.Song, dynamoDBClient *dynamodb.
 		return nil, e
 	}
 
-	var song *models.Song
+	var song *repoTypes.Song
 	if song, e = GetOneSong(ctx, payload.GUID, dynamoDBClient); e != nil {
 		return nil, e
 	}
@@ -104,7 +110,7 @@ func PutSong(ctx context.Context, payload models.Song, dynamoDBClient *dynamodb.
 func DeleteSong(ctx context.Context, songGUID string, dynamoDBClient *dynamodb.Client) error {
 	var songKey, _ = attributevalue.Marshal(songGUID)
 	var deleteItemInput = dynamodb.DeleteItemInput{
-		TableName: aws.String(models.SongsTableName),
+		TableName: aws.String(repoTypes.SongsTableName),
 		Key: map[string]types.AttributeValue{
 			"GUID": songKey,
 		},

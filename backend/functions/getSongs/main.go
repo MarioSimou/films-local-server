@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/MarioSimou/songs-local-server/backend/packages/models"
+	repoTypes "github.com/MarioSimou/songs-local-server/backend/packages/types"
 	"github.com/MarioSimou/songs-local-server/backend/packages/utils"
 	"github.com/aws/aws-lambda-go/events"
 	runtime "github.com/aws/aws-lambda-go/lambda"
@@ -26,7 +26,7 @@ func init() {
 }
 
 func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	var scanInput = &dynamodb.ScanInput{TableName: aws.String(models.SongsTableName)}
+	var scanInput = &dynamodb.ScanInput{TableName: aws.String(repoTypes.SongsTableName)}
 	var scanOutput = &dynamodb.ScanOutput{}
 	var e error
 
@@ -34,13 +34,13 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 
-	var songs []models.Song
+	var songs []repoTypes.Song
 	if e := attributevalue.UnmarshalListOfMaps(scanOutput.Items, &songs); e != nil {
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 
 	if len(songs) == 0 {
-		return utils.NewAPIResponse(http.StatusNotFound, utils.ErrSongNotFound), nil
+		return utils.NewAPIResponse(http.StatusNotFound, repoTypes.ErrSongNotFound), nil
 	}
 
 	return utils.NewAPIResponse(http.StatusOK, songs), nil

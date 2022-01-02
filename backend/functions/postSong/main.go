@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/MarioSimou/songs-local-server/backend/packages/models"
+	repoTypes "github.com/MarioSimou/songs-local-server/backend/packages/types"
 	"github.com/MarioSimou/songs-local-server/backend/packages/utils"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -39,7 +39,7 @@ func handler(ctx context.Context, event events.APIGatewayProxyRequest) (events.A
 	var reqBody PostSong
 	var now = time.Now()
 	var validate = utils.NewValidator()
-	var newSong *models.Song
+	var newSong *repoTypes.Song
 	var e error
 
 	if e := utils.DecodeEventBody(event.Body, &reqBody); e != nil {
@@ -50,7 +50,7 @@ func handler(ctx context.Context, event events.APIGatewayProxyRequest) (events.A
 		return utils.NewAPIResponse(http.StatusBadRequest, e), nil
 	}
 
-	var song = models.Song{
+	var song = repoTypes.Song{
 		GUID:        uuid.New().String(),
 		Name:        reqBody.Name,
 		Description: reqBody.Description,

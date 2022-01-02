@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/MarioSimou/songs-local-server/backend/packages/models"
+	repoTypes "github.com/MarioSimou/songs-local-server/backend/packages/types"
 	"github.com/MarioSimou/songs-local-server/backend/packages/utils"
 	"github.com/aws/aws-lambda-go/events"
 	runtime "github.com/aws/aws-lambda-go/lambda"
@@ -32,7 +32,7 @@ func init() {
 
 func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	var e error
-	var song *models.Song
+	var song *repoTypes.Song
 	var validate = utils.NewValidator()
 	var songGUID = req.PathParameters["guid"]
 
@@ -40,7 +40,7 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 		return utils.NewAPIResponse(http.StatusBadRequest, e), nil
 	}
 	if song, e = utils.GetOneSong(ctx, songGUID, dynamoDBClient); e != nil {
-		if e == utils.ErrSongNotFound {
+		if e == repoTypes.ErrSongNotFound {
 			return utils.NewAPIResponse(http.StatusNotFound, e), nil
 		}
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil

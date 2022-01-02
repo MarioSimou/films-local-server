@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/MarioSimou/songs-local-server/backend/packages/models"
+	repoTypes "github.com/MarioSimou/songs-local-server/backend/packages/types"
 	"github.com/MarioSimou/songs-local-server/backend/packages/utils"
 	"github.com/aws/aws-lambda-go/events"
 	runtime "github.com/aws/aws-lambda-go/lambda"
@@ -39,7 +39,7 @@ func init() {
 
 func handler(ctx context.Context, event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	var songGUID = event.PathParameters["guid"]
-	var currentSong *models.Song
+	var currentSong *repoTypes.Song
 	var e error
 	var m *utils.Multipart
 
@@ -52,13 +52,13 @@ func handler(ctx context.Context, event events.APIGatewayProxyRequest) (events.A
 	}
 
 	if currentSong, e = utils.GetOneSong(ctx, songGUID, dynamoDBClient); e != nil {
-		if e == utils.ErrSongNotFound {
+		if e == repoTypes.ErrSongNotFound {
 			return utils.NewAPIResponse(http.StatusNotFound, e), nil
 		}
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 
-	var imageBucketKey = utils.GetBucketKey(utils.ImageType, currentSong.GUID, m.Ext)
+	var imageBucketKey = utils.GetBucketKey(repoTypes.ImageType, currentSong.GUID, m.Ext)
 	if currentSong.Image != "" {
 		if e := utils.DeleteObject(ctx, imageBucketKey, s3Client); e != nil {
 			return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
@@ -72,7 +72,7 @@ func handler(ctx context.Context, event events.APIGatewayProxyRequest) (events.A
 
 	currentSong.Image = uploadOutput.Location
 
-	var newSong *models.Song
+	var newSong *repoTypes.Song
 	if newSong, e = utils.PutSong(ctx, *currentSong, dynamoDBClient); e != nil {
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}

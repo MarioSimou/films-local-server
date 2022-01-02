@@ -4,10 +4,16 @@ Transform: 'AWS::Serverless-2016-10-31'
 Parameters:
   Environment:
     Type: String
-    Default: stage
+    Default: dev
     AllowedValues:
-      - stage
+      - dev
       - prod
+  AWSS3Endpoint:
+    Type: String
+    Default: ''
+  AWSDynamoDBEndpoint: 
+    Type: String
+    Default: ''
 
 Globals:
   Function:
@@ -17,10 +23,70 @@ Globals:
     Environment:
       Variables:
         ENVIRONMENT: !Ref Environment
+        AWS_S3_ENDPOINT: !Ref AWSS3Endpoint
+        AWS_DYNAMODB_ENDPOINT: !Ref AWSDynamoDBEndpoint
   Api:
     BinaryMediaTypes: ['*~1*']
 
 Resources:
+  ProjectRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: songs-backend-admin-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - s3.amazonaws.com
+                - apigateway.amazonaws.com
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: songs-backend-role-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - lambda:InvokeFunction
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:DescribeTable
+                  - dynamodb:UpdateTable
+                  - dynamodb:Scan
+                  - s3:DeleteObject
+                  - s3:GetObject
+                  - s3:GetObjectAcl
+                  - s3:PutObject
+                  - s3:ListBucket
+                Effect: Allow
+                Resource: '*'
+  SongsBackendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: songs-backend-bucket
+      AccessControl: Private
+      VersioningConfiguration:
+        Status: Suspended
+  SongsBackendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SongsBackendBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - s3:GetObject
+            Effect: Allow
+            Resource: !Sub 'arn:aws:s3:::${SongsBackendBucket}/*'
+            Principal: '*'
   RestApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -42,6 +108,7 @@ Resources:
       Description: Used to create a new song entry
       CodeUri: functions/postSong
       Handler: main
+      Role: !GetAtt ProjectRole.Arn
       Events:
         ApiEvent:
           Type: Api
@@ -56,6 +123,7 @@ Resources:
       Description: Used to get the songs
       CodeUri: functions/getSongs
       Handler: main
+      Role: !GetAtt ProjectRole.Arn
       Events:
         ApiEvent:
           Type: Api
@@ -70,6 +138,7 @@ Resources:
       Description: Used to get a single song
       CodeUri: functions/getSong
       Handler: main
+      Role: !GetAtt ProjectRole.Arn
       Events:
         ApiEvent:
           Type: Api
@@ -84,6 +153,7 @@ Resources:
       Description: Used to delete a song
       Handler: main
       CodeUri: functions/deleteSong
+      Role: !GetAtt ProjectRole.Arn
       Events:
         ApiEvent:
           Type: Api
@@ -98,6 +168,7 @@ Resources:
       Description: Used to update a song
       Handler: main
       CodeUri: functions/putSong
+      Role: !GetAtt ProjectRole.Arn
       Events:
         ApiEvent:
           Type: Api
@@ -112,6 +183,7 @@ Resources:
       Description: Upload a song to an s3 bucket
       Handler: main
       CodeUri: functions/uploadSong
+      Role: !GetAtt ProjectRole.Arn
       Events:
         ApiEvent:
           Type: Api
@@ -126,6 +198,7 @@ Resources:
           Description: Upload an image of a particular song
           Handler: main
           CodeUri: functions/putSongImage
+          Role: !GetAtt ProjectRole.Arn
           Events:
             ApiEvent:
               Type: Api
@@ -140,6 +213,7 @@ Resources:
         Description: Delete an image of a particular song
         Handler: main
         CodeUri: functions/deleteSongImage
+        Role: !GetAtt ProjectRole.Arn
         Events:
           ApiEvent:
             Type: Api
@@ -150,12 +224,22 @@ Resources:
                 Ref: RestApi
 
 Outputs:
+  ProjectRoleName:
+    Value: !Ref ProjectRole
+  ProjectRoleArn:
+    Value: !GetAtt ProjectRole.Arn
   SongsTableId:
     Description: Songs table id
     Value: !Ref SongsTable
+  BucketDomain:
+    Value: !GetAtt SongsBackendBucket.DomainName
+  BucketRegionalDomain:
+    Value: !GetAtt SongsBackendBucket.RegionalDomainName
+  BucketWebsiteURL:
+    Value: !GetAtt SongsBackendBucket.WebsiteURL
   APIEndpointId:
     Description: endpoint id
     Value: !Ref RestApi
-  APIEndpointStage:
-    Description: stage endpoint for stage
+  APIEndpointProd:
+    Description: prod endpoint
     Value: !Sub 'https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/prod'

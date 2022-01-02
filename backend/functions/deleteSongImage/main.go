@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/MarioSimou/songs-local-server/backend/packages/models"
+	repoTypes "github.com/MarioSimou/songs-local-server/backend/packages/types"
 	"github.com/MarioSimou/songs-local-server/backend/packages/utils"
 	"github.com/aws/aws-lambda-go/events"
 	runtime "github.com/aws/aws-lambda-go/lambda"
@@ -33,8 +33,8 @@ func init() {
 func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	var songGUID = req.PathParameters["guid"]
 	var validate = utils.NewValidator()
-	var currentSong *models.Song
-	var newSong *models.Song
+	var currentSong *repoTypes.Song
+	var newSong *repoTypes.Song
 	var e error
 
 	if e := validate.Var(songGUID, "required,uuid4"); e != nil {
@@ -42,14 +42,14 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	}
 
 	if currentSong, e = utils.GetOneSong(ctx, songGUID, dynamoDBClient); e != nil {
-		if e == utils.ErrSongNotFound {
+		if e == repoTypes.ErrSongNotFound {
 			return utils.NewAPIResponse(http.StatusNotFound, e), nil
 		}
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 
 	if currentSong.Image == "" {
-		return utils.NewAPIResponse(http.StatusNotFound, utils.ErrImageNotFound), nil
+		return utils.NewAPIResponse(http.StatusNotFound, repoTypes.ErrImageNotFound), nil
 	}
 
 	var imageKey = utils.GetBucketKeyFromURL(currentSong.Image)

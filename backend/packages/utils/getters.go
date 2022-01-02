@@ -4,16 +4,11 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+
+	repoTypes "github.com/MarioSimou/songs-local-server/backend/packages/types"
 )
 
-type FileType = string
-
-var (
-	ImageType FileType = "image"
-	SongType  FileType = "song"
-)
-
-func GetBucketKey(ft FileType, songGUID, ext string) string {
+func GetBucketKey(ft repoTypes.FileType, songGUID, ext string) string {
 	return fmt.Sprintf("%s/%s%s", songGUID, ft, ext)
 }
 

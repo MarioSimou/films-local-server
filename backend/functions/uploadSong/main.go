@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/MarioSimou/songs-local-server/backend/packages/models"
+	repoTypes "github.com/MarioSimou/songs-local-server/backend/packages/types"
 	"github.com/MarioSimou/songs-local-server/backend/packages/utils"
 	"github.com/aws/aws-lambda-go/events"
 	runtime "github.com/aws/aws-lambda-go/lambda"
@@ -40,7 +40,7 @@ func init() {
 func handler(ctx context.Context, event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	var songGUID = event.PathParameters["guid"]
 	var validate = utils.NewValidator()
-	var currentSong *models.Song
+	var currentSong *repoTypes.Song
 	var e error
 	var m *utils.Multipart
 
@@ -55,21 +55,21 @@ func handler(ctx context.Context, event events.APIGatewayProxyRequest) (events.A
 	}
 
 	if currentSong, e = utils.GetOneSong(ctx, songGUID, dynamoDBClient); e != nil {
-		if e == utils.ErrSongNotFound {
+		if e == repoTypes.ErrSongNotFound {
 			return utils.NewAPIResponse(http.StatusNotFound, e), nil
 		}
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 
 	var uploadOutput *manager.UploadOutput
-	var songBucketKey = utils.GetBucketKey(utils.SongType, currentSong.GUID, m.Ext)
-	if uploadOutput, e = utils.UploadObject(ctx, songBucketKey, m, types.StorageClassGlacierIr, s3Uploader); e != nil {
+	var songBucketKey = utils.GetBucketKey(repoTypes.SongType, currentSong.GUID, m.Ext)
+	if uploadOutput, e = utils.UploadObject(ctx, songBucketKey, m, types.StorageClassOnezoneIa, s3Uploader); e != nil {
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 
 	currentSong.Location = uploadOutput.Location
 
-	var newSong *models.Song
+	var newSong *repoTypes.Song
 	if newSong, e = utils.PutSong(ctx, *currentSong, dynamoDBClient); e != nil {
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}

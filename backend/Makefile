@@ -1,13 +1,13 @@
 functionName ?= GetSongs
-env ?= stage
-name = songs-local-server-backend
-bucketName = songs-local-server-backend-bucket
+env ?= dev
+name = songs-backend
+stackBucketName = songs-local-server-bucket
 
 validate:
 	@cfn-lint template.yaml
 
-create-bucket:
-	@aws s3api create-bucket --bucket $(bucketName)
+create-stack-bucket:
+	@aws s3api create-bucket --bucket $(stackBucketName)
 
 build-functions:
 	@go build -o ./.aws-sam/build/PostSong/main ./functions/postSong/main.go
@@ -24,20 +24,20 @@ watch-build-functions:
 
 test:
 	@sam build --parallel
-	@sam local invoke $(functionName) --parameter-overrides Environment=$(env)
+	@sam local invoke $(functionName) --parameter-overrides Environment='prod'
 
 test-api:
 	@rm -rf .aws-sam
 	@sam build --parallel
-	@sam local start-api --parameter-overrides Environment=$(env) --docker-network songs-local-server-backend-network
+	@sam local start-api --parameter-overrides Environment=$(env) AWSS3Endpoint='http://s3:4566' AWSDynamoDBEndpoint='http://dynamodb:4566' --docker-network songs-local-server-backend-network
 
 packages:
-	@sam package --s3-bucket $(bucketName)
+	@sam package --s3-bucket $(stackBucketName)
 
 deploy:
 	@make validate
 	@sam build --parallel
-	@sam deploy --stack-name $(name) --s3-bucket $(bucketName) --capabilities CAPABILITY_IAM --parameter-overrides Environment=prod
+	@sam deploy --stack-name $(name) --s3-bucket $(stackBucketName) --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM --parameter-overrides Environment=prod
 
 cleanup:
 	@sam delete --stack-name $(name) 
