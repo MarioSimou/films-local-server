@@ -27,7 +27,9 @@ Globals:
         AWS_DYNAMODB_ENDPOINT: !Ref AWSDynamoDBEndpoint
   Api:
     BinaryMediaTypes: ['*~1*']
-
+    Cors:
+      AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+      AllowOrigin: "'*'"
 Resources:
   ProjectRole:
     Type: AWS::IAM::Role

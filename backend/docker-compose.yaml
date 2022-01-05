@@ -28,7 +28,7 @@ services:
       - "3002:3002"
     environment:
       - PORT=3002
-      - DYNAMO_ENDPOINT=http://dynamodb:4566
+      - DYNAMO_ENDPOINT=http://dynamodb:3001
     networks:
       - backend-network
     depends_on:
@@ -37,12 +37,12 @@ services:
     container_name: dynamodb
     image: localstack/localstack-full:0.13.2
     ports:
-      - "3001:4566"
+      - "3001:3001"
     environment:
       - LOCALSTACK_SERVICES=dynamodb
       - DATA_DIR=/tmp/localstack/data
       - DYNAMODB_SHARE_DB=1
-      - EDGE_PORT=4566
+      - EDGE_PORT=3001
       - DEBUG=0
     volumes:
       - type: volume
@@ -54,11 +54,11 @@ services:
     container_name: s3
     image: localstack/localstack-full:0.13.2
     ports:
-      - "3003:4566"
+      - "3003:3003"
     environment:
       - LOCALSTACK_SERVICES=s3
       - DATA_DIR=/tmp/localstack/data
-      - EDGE_PORT=4566
+      - EDGE_PORT=3003
       - DEBUG=0
     volumes:
       - type: volume
@@ -67,14 +67,18 @@ services:
     networks:
       - backend-network    
 
-      # api:
+  # api:
   #   container_name: api
-  #   build:
-  #     context: .
-  #     dockerfile: ./images/api.dockerfile
+  #   image: cnadiminti/aws-sam-local:latest
+  #   volumes:
+  #     - type: bind
+  #       source: .
+  #       target: /var/opt
+  #     - type: bind
+  #       source: /var/run/docker.sock
+  #       target: /var/run/docker.sock
   #   ports:
   #     - "3000:3000"
-  #   volumes:
-  #     - type: bind 
-  #       source: .
-  #       target: /api
+  #   networks:
+  #     - backend-network
+  #   command: local start-api --parameter-values Environment=dev AWSS3Endpoint='http://s3:4566' AWSDynamoDBEndpoint='http://dynamodb:4566'

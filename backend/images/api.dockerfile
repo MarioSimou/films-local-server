@@ -1,4 +1,4 @@
-FROM golang:1.16-buster
+FROM cnadiminti/aws-sam-local:0.2.2
 
 WORKDIR /opt
 RUN apt-get update \

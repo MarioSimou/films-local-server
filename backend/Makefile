@@ -29,13 +29,12 @@ test:
 test-api:
 	@rm -rf .aws-sam
 	@sam build --parallel
-	@sam local start-api --parameter-overrides Environment=$(env) AWSS3Endpoint='http://s3:4566' AWSDynamoDBEndpoint='http://dynamodb:4566' --docker-network songs-local-server-backend-network
+	@sam local start-api --parameter-overrides Environment=$(env) AWSS3Endpoint='http://s3:3003' AWSDynamoDBEndpoint='http://dynamodb:3001' --docker-network songs-local-server-backend-network
 
 packages:
 	@sam package --s3-bucket $(stackBucketName)
 
 deploy:
-	@make validate
 	@sam build --parallel
 	@sam deploy --stack-name $(name) --s3-bucket $(stackBucketName) --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM --parameter-overrides Environment=prod
 
