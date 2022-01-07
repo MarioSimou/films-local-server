@@ -1,7 +1,7 @@
 import React from 'react'
-import {httpClient, isHTTPError} from '@utils'
+import {httpClient, isHTTPError, getBackendURL} from '@utils'
 import type {AxiosResponse} from 'axios'
-import type { Song, PostSong, HTTPResponse } from '@types'
+import type { Song, PostSong, PutSong, HTTPResponse } from '@types'
 
 type DeleteSongResponse = [Error | undefined]
 type PostSongResponse = [Error] | [undefined, Song]
@@ -11,15 +11,18 @@ export const useSong = () => {
     const deletSong = React.useCallback(async (songGUID: string): Promise<DeleteSongResponse>  => {
         try {
             setIsLoading(() => true)
-            await httpClient.delete(`/api/v1/songs/${songGUID}`)
+            await httpClient({
+                url: getBackendURL(`/api/v1/songs/${songGUID}`),
+                method: 'DELETE',
+            })
             setIsLoading(() => false)
             return [undefined]
-        }catch(e){
+        }catch(e: any){
             setIsLoading(() => false)
             if(isHTTPError(e?.response?.data)){
-                return [e.response.data.message]
+                return [new Error(e.response.data.message)]
             }
-            return [e.message]
+            return [e]
         }
     }, [])
 
@@ -27,9 +30,11 @@ export const useSong = () => {
         try{
             setIsLoading(true)
             const {name, description, image, location} = song 
-            const postSongPayload = JSON.stringify({name, description})
-            const postSongResponse: AxiosResponse<HTTPResponse<Song>> = await httpClient.post('/api/v1/songs', postSongPayload)
-    
+            const postSongResponse: AxiosResponse<HTTPResponse<Song>> = await httpClient({
+                url: getBackendURL('/api/v1/songs'),
+                method: 'POST',
+                data: JSON.stringify({name, description})
+            })
     
             if(!postSongResponse.data.success){
                 throw new Error(postSongResponse.data.message)
@@ -38,7 +43,11 @@ export const useSong = () => {
             const songGUID = postSongResponse.data.data?.guid
             const putImageFormData = new FormData()
             putImageFormData.append('image', image)
-            const putSongImageResponse: AxiosResponse<HTTPResponse<Song>> = await httpClient.put(`/api/v1/songs/${songGUID}/image`, putImageFormData)
+            const putSongImageResponse: AxiosResponse<HTTPResponse<Song>> = await httpClient({
+                method: 'PUT',
+                url: getBackendURL(`/api/v1/songs/${songGUID}/image`), 
+                data: putImageFormData
+            })
     
             if(!putSongImageResponse.data.success){
                 throw new Error(putSongImageResponse.data.message)
@@ -46,23 +55,78 @@ export const useSong = () => {
     
             const uploadSongFormData = new FormData()
             uploadSongFormData.append('song', location)
-            const uploadSongResponse: AxiosResponse<HTTPResponse<Song>> = await httpClient.put(`/api/v1/songs/${songGUID}/upload`, putImageFormData)
+            const uploadSongResponse: AxiosResponse<HTTPResponse<Song>> = await httpClient({
+                method: 'PUT',
+                url: getBackendURL(`/api/v1/songs/${songGUID}/upload`),
+                data: uploadSongFormData,
+            })
     
             if(!uploadSongResponse.data.success){
                 throw new Error(uploadSongResponse.data.message)
             }
             setIsLoading(false)
             return [undefined, uploadSongResponse.data.data as Song]
-        }catch(e){
+        }catch(e: any){
+            console.log(e.message)
             setIsLoading(() => false)
             if(isHTTPError(e?.response?.data)){
-                return [e.response.data.message]
+                return [new Error(e.response.data.message)]
             }
-            return [e.message]
+            return [e]
+        }
+    }, [setIsLoading])
+
+    const putSong = React.useCallback(async (songGUID: string, song: PutSong): Promise<PostSongResponse> => {
+        try{
+            setIsLoading(true)
+            const {name, description, image, location} = song 
+            const putSongPayload = JSON.stringify({name, description})
+            const postSongResponse: AxiosResponse<HTTPResponse<Song>> = await httpClient({
+                method: 'PUT',
+                url: getBackendURL(`/api/v1/songs/${songGUID}`), 
+                data: putSongPayload
+            })
+    
+            if(!postSongResponse.data.success){
+                throw new Error(postSongResponse.data.message)
+            }
+    
+            const putImageFormData = new FormData()
+            putImageFormData.append('image', image)
+            const putSongImageResponse: AxiosResponse<HTTPResponse<Song>> = await httpClient({
+                method: 'PUT',
+                url: getBackendURL(`/api/v1/songs/${songGUID}/image`), 
+                data: putImageFormData
+            })
+    
+            if(!putSongImageResponse.data.success){
+                throw new Error(putSongImageResponse.data.message)
+            }
+    
+            const uploadSongFormData = new FormData()
+            uploadSongFormData.append('song', location)
+            const uploadSongResponse: AxiosResponse<HTTPResponse<Song>> = await httpClient({
+                method: 'PUT',
+                url: getBackendURL(`/api/v1/songs/${songGUID}/upload`), 
+                data: uploadSongFormData
+            })
+    
+            if(!uploadSongResponse.data.success){
+                throw new Error(uploadSongResponse.data.message)
+            }
+            setIsLoading(false)
+            return [undefined, uploadSongResponse.data.data as Song]
+        }catch(e: any){
+            setIsLoading(() => false)
+            if(isHTTPError(e?.response?.data)){
+                return [new Error(e.response.data.message)]
+            }
+            return [e]
         }
     }, [setIsLoading])
 
     return {
+        putSong,
         postSong,
         isLoading,
         deletSong

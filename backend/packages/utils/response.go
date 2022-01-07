@@ -34,8 +34,7 @@ func NewAPIResponse(status int, data interface{}) events.APIGatewayProxyResponse
 		StatusCode: status,
 		Body:       string(body),
 		Headers: map[string]string{
-			"Access-Control-Allow-Origin":  "*",
-			"Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+			"Access-Control-Allow-Origin": "http://localhost:8080",
 		},
 	}
 }

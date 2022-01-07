@@ -19,6 +19,7 @@ export type PostSong = {
     image: File
     location: File
 }
+export type PutSong = PostSong
 
 export type HTTPResponse<T> = {
     status: number

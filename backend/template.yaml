@@ -28,8 +28,10 @@ Globals:
   Api:
     BinaryMediaTypes: ['*~1*']
     Cors:
-      AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
-      AllowOrigin: "'*'"
+      AllowOrigin: "'http://localhost:8080'"
+      AllowHeaders: "'Content-Type'"
+      AllowMethods: "'GET,PUT,POST,DELETE,OPTIONS'"
+  
 Resources:
   ProjectRole:
     Type: AWS::IAM::Role

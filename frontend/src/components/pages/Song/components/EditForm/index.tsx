@@ -1,30 +1,19 @@
 import React from 'react'
-import { Modal, ModalOverlay, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, ModalContent, VStack, useToast} from '@chakra-ui/react'
+import { Modal, ModalOverlay, ModalHeader, Img, ModalCloseButton, ModalBody, ModalFooter, ModalContent, VStack, useToast} from '@chakra-ui/react'
 import type { Song  } from '@types'
-import { useFormFields } from '@hooks'
+import { useFormFields, useSong } from '@hooks'
 import {InputField, TextareaField} from '@components/shared/Field'
 import { Button, ChakraButton } from '@components/shared/Button'
-import { httpClient } from '@utils'
+import FileInput from '@components/shared/FileInput'
 
 export type EditFormProps = {
     isOpen: boolean
     onClose: () => void
-    song: Song
-}
-
-const fetchFile = async (name: string, href: string): Promise<[Error] | [undefined, File]> => {
-    try {
-        const res = await fetch(href)
-        const blob = await res.blob()
-        const file = new File([blob], name)
-        return [undefined, file]
-    
-    } catch(e){
-        return [e.message]
-    }
+    song: Omit<Song, 'location' | 'image'> & {location: File, image: File},
 }
 
 const EditForm = ({isOpen, onClose, song}: EditFormProps) => {
+    const {isLoading, putSong} = useSong()
     const toast = useToast({
         isClosable: true,
         title: 'Update Song',
@@ -43,48 +32,50 @@ const EditForm = ({isOpen, onClose, song}: EditFormProps) => {
             error: '',
         },
     })
-    const imageRef = React.useRef<File>()
-    const locationRef = React.useRef<File>()
 
-    const { fields: fileFields, setValue } = useFormFields({
+    const { fields: fileFields, setValue: setFileValue } = useFormFields({
         image: {
-            value: imageRef.current,
+            value: song.image,
             touched: false,
             error: '',
         },
         location: {
-            value: locationRef.current,
+            value: song.location,
             touched: false,
             error: ''
         }
     })
+
+    const onChangeFile = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const {id} = e.target 
+        const file = e.currentTarget.files?.[0]
+
+        if(!file){
+            return
+        }
+
+        setFileValue(id, file, '')
+    }, [setFileValue])
     
-    // React.useEffect(() => {
-    //     const fetchFiles = async () => {
-    //         const [imageError, imageFile] = await fetchFile("image",song.image)
-    //         if(imageError){
-    //             return toast({description: imageError.message})
-    //         }
-
-    //         const [locationError, locationFile] = await fetchFile("location",song.location)
-    //         if(locationError){
-    //             return toast({description: locationError.message})
-    //         }
-
-    //         setValue('image', imageFile, '')
-    //         setValue('location', locationFile, '')
-    //     }
-    //     fetchFiles()
-    // }, [])
-
-    const onUpdateSong = () => {
-        const isTouched = fields.name.touched || fields.description.touched
-
+    const onUpdateSong = async () => {
+        const isTouched = fields.name.touched || fields.description.touched || fileFields.image.touched || fileFields.location.touched
+ 
         if(!isTouched){
             return toast({description: "We didn't notice any change on the song structure. Please provide some changes."})
         }
+        const [e] = await putSong(song.guid, {
+            name: fields.name.value,
+            description: fields.description.value,
+            image: fileFields.image.value,
+            location: fileFields.location.value,
+        })
 
-        console.log('update song')
+        if(e){
+            return toast({description: e.message})
+        }
+
+        toast({description: "The song has been succesfully updated", status: "success"})
+        return onClose()
     }
 
     return (
@@ -97,11 +88,19 @@ const EditForm = ({isOpen, onClose, song}: EditFormProps) => {
                     <VStack spacing="1rem">
                         <InputField id="name" label="Name" onChange={handleOnChange} onBlur={handleOnBlur} {...fields.name}/>
                         <TextareaField id="description" label="Description" onChange={handleOnChange} onBlur={handleOnBlur} {...fields.description}/>
+                        {song.image && <FileInput bg="gray.50" id="image" subtitle="Select an image to upload" btnText="Upload an image" value={fileFields.image.value} onChangeFile={onChangeFile}>
+                                <Img w="360px" h="240px" src={URL.createObjectURL(fileFields.image.value)} type={fileFields.image.value?.type}/>
+                            </FileInput>}
+                        {song.location && <FileInput bg="gray.50" accept="audio/*" id="location" subtitle="Select a song to upload" btnText="Upload a song" value={fileFields.location.value} onChangeFile={onChangeFile}>
+                            <audio controls>
+                                <source src={URL.createObjectURL(fileFields.location.value)} type={fileFields.location.value?.type}/>
+                            </audio>
+                        </FileInput>}
                     </VStack>
                 </ModalBody>
                 <ModalFooter>
                     <VStack w="100%">
-                        <Button onClick={onUpdateSong}>Update</Button>
+                        <Button isLoading={isLoading} onClick={onUpdateSong}>Update</Button>
                         <ChakraButton isFullWidth variant="outline" colorScheme="primary" color="primary.900" onClick={onClose}>Close</ChakraButton>
                     </VStack>
                 </ModalFooter>
