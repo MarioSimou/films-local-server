@@ -1,63 +1,14 @@
-package utils
+package awsUtils
 
 import (
 	"context"
-	"fmt"
-	"os"
 
 	repoTypes "github.com/MarioSimou/songs-local-server/backend/packages/types"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
-
-func GetAWSConfig(ctx context.Context, env repoTypes.EnvironmentType, endpoint string) (*aws.Config, error) {
-	var cfg aws.Config
-	var e error
-
-	if env == "prod" {
-		if cfg, e = config.LoadDefaultConfig(ctx); e != nil {
-			return nil, e
-		}
-		return &cfg, e
-	}
-
-	var customResolver = aws.EndpointResolverFunc(func(service, region string) (aws.Endpoint, error) {
-		return aws.Endpoint{
-			PartitionID:   "aws",
-			SigningRegion: "us-east-1",
-			URL:           endpoint,
-		}, nil
-	})
-
-	if cfg, e = config.LoadDefaultConfig(ctx,
-		config.WithRegion("us-east-1"),
-		config.WithEndpointResolver(customResolver),
-	); e != nil {
-		return nil, e
-	}
-
-	return &cfg, nil
-}
-
-func NewDynamoDBClient(ctx context.Context) (*dynamodb.Client, error) {
-	var e error
-	var cfg *aws.Config
-	var dynamoDBEndpoint = os.Getenv("AWS_DYNAMODB_ENDPOINT")
-	var env repoTypes.EnvironmentType = os.Getenv("ENVIRONMENT")
-
-	if env == repoTypes.Dev && len(dynamoDBEndpoint) == 0 {
-		return nil, fmt.Errorf("error: environment '%s' with endpoint '%s'", env, dynamoDBEndpoint)
-	}
-
-	if cfg, e = GetAWSConfig(ctx, env, dynamoDBEndpoint); e != nil {
-		return nil, e
-	}
-
-	return dynamodb.NewFromConfig(*cfg), nil
-}
 
 func GetOneSong(ctx context.Context, guid string, dynamoClient *dynamodb.Client) (*repoTypes.Song, error) {
 	var guidKey, _ = attributevalue.Marshal(guid)

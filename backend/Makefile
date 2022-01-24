@@ -1,7 +1,9 @@
-functionName ?= GetSongs
+functionName ?= UploadLambda
 env ?= dev
 name = songs-backend
+eventPath = event.json
 stackBucketName = songs-local-server-bucket
+awsSnsUploadTopicArn = arn:aws:sns:us-east-1:000000000000:songs-local-server-upload-topic
 
 validate:
 	@cfn-lint template.yaml
@@ -24,12 +26,12 @@ watch-build-functions:
 
 test:
 	@sam build --parallel
-	@sam local invoke $(functionName) --parameter-overrides Environment='prod'
+	@sam local invoke $(functionName) -e $(eventPath) --parameter-overrides Environment=$(env) AWSEndpoint='http://aws:3001' --docker-network songs-local-server-backend-network
 
 test-api:
 	@rm -rf .aws-sam
 	@sam build --parallel
-	@sam local start-api --parameter-overrides Environment=$(env) AWSS3Endpoint='http://s3:3003' AWSDynamoDBEndpoint='http://dynamodb:3001' --docker-network songs-local-server-backend-network
+	@sam local start-api --parameter-overrides Environment=$(env) AWSSnsUploadTopicArn=$(awsSnsUploadTopicArn) AWSEndpoint='http://aws:3001' --docker-network songs-local-server-backend-network
 
 packages:
 	@sam package --s3-bucket $(stackBucketName)

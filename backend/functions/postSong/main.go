@@ -6,10 +6,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/MarioSimou/songs-local-server/backend/packages/awsUtils"
 	repoTypes "github.com/MarioSimou/songs-local-server/backend/packages/types"
 	"github.com/MarioSimou/songs-local-server/backend/packages/utils"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/google/uuid"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -17,8 +16,7 @@ import (
 )
 
 var (
-	cfg            aws.Config
-	dynamoDBClient *dynamodb.Client
+	awsClients *awsUtils.AWSClients
 )
 
 type PostSong struct {
@@ -30,8 +28,9 @@ func init() {
 	var e error
 	var ctx = context.Background()
 
-	if dynamoDBClient, e = utils.NewDynamoDBClient(ctx); e != nil {
-		log.Fatalf("error: %v", e)
+	if awsClients, e = awsUtils.NewAWSClients(ctx); e != nil {
+		log.Fatalf("Error: %v\n", e)
+
 	}
 }
 
@@ -58,7 +57,7 @@ func handler(ctx context.Context, event events.APIGatewayProxyRequest) (events.A
 		UpdatedAt:   now,
 	}
 
-	if newSong, e = utils.PutSong(ctx, song, dynamoDBClient); e != nil {
+	if newSong, e = awsUtils.PutSong(ctx, song, awsClients.DynamoDB); e != nil {
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 

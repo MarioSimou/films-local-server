@@ -5,27 +5,23 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/MarioSimou/songs-local-server/backend/packages/awsUtils"
 	repoTypes "github.com/MarioSimou/songs-local-server/backend/packages/types"
 	"github.com/MarioSimou/songs-local-server/backend/packages/utils"
+
 	"github.com/aws/aws-lambda-go/events"
 	runtime "github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 var (
-	dynamoDBClient *dynamodb.Client
-	s3Client       *s3.Client
+	awsClients *awsUtils.AWSClients
 )
 
 func init() {
 	var e error
 	var ctx = context.Background()
-	if dynamoDBClient, e = utils.NewDynamoDBClient(ctx); e != nil {
-		log.Fatalf("Error: %v\n", e)
-	}
 
-	if s3Client, e = utils.NewS3Client(ctx); e != nil {
+	if awsClients, e = awsUtils.NewAWSClients(ctx); e != nil {
 		log.Fatalf("Error: %v\n", e)
 	}
 }
@@ -39,7 +35,7 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	if e := validate.Var(songGUID, "required,uuid4"); e != nil {
 		return utils.NewAPIResponse(http.StatusBadRequest, e), nil
 	}
-	if song, e = utils.GetOneSong(ctx, songGUID, dynamoDBClient); e != nil {
+	if song, e = awsUtils.GetOneSong(ctx, songGUID, awsClients.DynamoDB); e != nil {
 		if e == repoTypes.ErrSongNotFound {
 			return utils.NewAPIResponse(http.StatusNotFound, e), nil
 		}
@@ -47,17 +43,17 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	}
 	if song.Location != "" {
 		var songKey = utils.GetBucketKeyFromURL(song.Location)
-		if e := utils.DeleteObject(ctx, songKey, s3Client); e != nil {
+		if e := awsUtils.DeleteObject(ctx, songKey, awsClients.S3); e != nil {
 			return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 		}
 	}
 	if song.Image != "" {
 		var imageKey = utils.GetBucketKeyFromURL(song.Image)
-		if e := utils.DeleteObject(ctx, imageKey, s3Client); e != nil {
+		if e := awsUtils.DeleteObject(ctx, imageKey, awsClients.S3); e != nil {
 			return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 		}
 	}
-	if e := utils.DeleteSong(ctx, songGUID, dynamoDBClient); e != nil {
+	if e := awsUtils.DeleteSong(ctx, songGUID, awsClients.DynamoDB); e != nil {
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 

@@ -5,34 +5,22 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/MarioSimou/songs-local-server/backend/packages/awsUtils"
 	repoTypes "github.com/MarioSimou/songs-local-server/backend/packages/types"
 	"github.com/MarioSimou/songs-local-server/backend/packages/utils"
 	"github.com/aws/aws-lambda-go/events"
 	runtime "github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 var (
-	dynamoDBClient *dynamodb.Client
-	s3Client       *s3.Client
-	s3Uploader     *manager.Uploader
+	awsClients *awsUtils.AWSClients
 )
 
 func init() {
 	var e error
 	var ctx = context.Background()
-	if dynamoDBClient, e = utils.NewDynamoDBClient(ctx); e != nil {
-		log.Fatalf("Error: %v\n", e)
-	}
 
-	if s3Client, e = utils.NewS3Client(ctx); e != nil {
-		log.Fatalf("Error: %v\n", e)
-	}
-
-	if s3Uploader, e = utils.NewS3Uploader(ctx); e != nil {
+	if awsClients, e = awsUtils.NewAWSClients(ctx); e != nil {
 		log.Fatalf("Error: %v\n", e)
 	}
 }
@@ -42,6 +30,7 @@ func handler(ctx context.Context, event events.APIGatewayProxyRequest) (events.A
 	var currentSong *repoTypes.Song
 	var e error
 	var m *utils.Multipart
+	var newSong *repoTypes.Song
 
 	if e := utils.IsMultipartFormData(event.Headers["Content-Type"]); e != nil {
 		return utils.NewAPIResponse(http.StatusBadRequest, e), nil
@@ -51,7 +40,7 @@ func handler(ctx context.Context, event events.APIGatewayProxyRequest) (events.A
 		return utils.NewAPIResponse(http.StatusBadRequest, e), nil
 	}
 
-	if currentSong, e = utils.GetOneSong(ctx, songGUID, dynamoDBClient); e != nil {
+	if currentSong, e = awsUtils.GetOneSong(ctx, songGUID, awsClients.DynamoDB); e != nil {
 		if e == repoTypes.ErrSongNotFound {
 			return utils.NewAPIResponse(http.StatusNotFound, e), nil
 		}
@@ -59,21 +48,13 @@ func handler(ctx context.Context, event events.APIGatewayProxyRequest) (events.A
 	}
 
 	var imageBucketKey = utils.GetBucketKey(repoTypes.ImageType, currentSong.GUID, m.Ext)
-	if currentSong.Image != "" {
-		if e := utils.DeleteObject(ctx, imageBucketKey, s3Client); e != nil {
-			return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
-		}
-	}
-
-	var uploadOutput *manager.UploadOutput
-	if uploadOutput, e = utils.UploadObject(ctx, imageBucketKey, m, types.StorageClassStandard, s3Uploader); e != nil {
+	if _, e := awsUtils.UploadOne(ctx, awsClients.SNS, imageBucketKey, repoTypes.ImageField, m.Body); e != nil {
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 
-	currentSong.Image = uploadOutput.Location
+	currentSong.ImageStatus = repoTypes.Pending
 
-	var newSong *repoTypes.Song
-	if newSong, e = utils.PutSong(ctx, *currentSong, dynamoDBClient); e != nil {
+	if newSong, e = awsUtils.PutSong(ctx, *currentSong, awsClients.DynamoDB); e != nil {
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 

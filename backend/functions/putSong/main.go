@@ -6,16 +6,16 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/MarioSimou/songs-local-server/backend/packages/awsUtils"
 	repoTypes "github.com/MarioSimou/songs-local-server/backend/packages/types"
 	"github.com/MarioSimou/songs-local-server/backend/packages/utils"
 	"github.com/aws/aws-lambda-go/events"
 	runtime "github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/jinzhu/copier"
 )
 
 var (
-	dynamoDBClient *dynamodb.Client
+	awsClients *awsUtils.AWSClients
 )
 
 type bodyBinding struct {
@@ -26,8 +26,11 @@ type bodyBinding struct {
 
 func init() {
 	var e error
-	if dynamoDBClient, e = utils.NewDynamoDBClient(context.Background()); e != nil {
+	var ctx = context.Background()
+
+	if awsClients, e = awsUtils.NewAWSClients(ctx); e != nil {
 		log.Fatalf("Error: %v\n", e)
+
 	}
 }
 
@@ -51,7 +54,7 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	}
 	body.UpdatedAt = time.Now()
 
-	if currentSong, e = utils.GetOneSong(ctx, songGUID, dynamoDBClient); e != nil {
+	if currentSong, e = awsUtils.GetOneSong(ctx, songGUID, awsClients.DynamoDB); e != nil {
 		if e == repoTypes.ErrSongNotFound {
 			return utils.NewAPIResponse(http.StatusNotFound, e), nil
 		}
@@ -62,7 +65,7 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 
-	if newSong, e = utils.PutSong(ctx, *currentSong, dynamoDBClient); e != nil {
+	if newSong, e = awsUtils.PutSong(ctx, *currentSong, awsClients.DynamoDB); e != nil {
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 

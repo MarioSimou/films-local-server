@@ -7,10 +7,13 @@ import (
 
 type FileType = string
 type EnvironmentType = string
+type Field string
 
 var (
 	ImageType             FileType        = "image"
 	SongType              FileType        = "song"
+	ImageField            Field           = "image"
+	LocatioField          Field           = "location"
 	Production            EnvironmentType = "prod"
 	Dev                   EnvironmentType = "dev"
 	SongsTableName                        = "songs"
@@ -18,14 +21,18 @@ var (
 	ErrS3ObjectNotFound                   = errors.New("error: s3 object not found")
 	ErrInvalidContentType                 = errors.New("error: invalid content type")
 	ErrSongNotFound                       = errors.New("error: song not found")
+	Pending                               = "pending"
+	Done                                  = "done"
 )
 
 type Song struct {
-	GUID        string    `json:"guid"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Image       string    `json:"image"`
-	Location    string    `json:"location"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	GUID           string    `json:"guid"`
+	Name           string    `json:"name"`
+	Description    string    `json:"description"`
+	Image          string    `json:"image"`
+	ImageStatus    string    `json:"imageStatus,omitempty"`
+	Location       string    `json:"location"`
+	LocationStatus string    `json:"locationStatus,omitempty"`
+	CreatedAt      time.Time `json:"createdAt"`
+	UpdatedAt      time.Time `json:"updatedAt"`
 }

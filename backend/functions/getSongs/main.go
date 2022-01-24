@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/MarioSimou/songs-local-server/backend/packages/awsUtils"
 	repoTypes "github.com/MarioSimou/songs-local-server/backend/packages/types"
 	"github.com/MarioSimou/songs-local-server/backend/packages/utils"
 	"github.com/aws/aws-lambda-go/events"
@@ -15,13 +16,16 @@ import (
 )
 
 var (
-	dynamoDBClient *dynamodb.Client
+	awsClients *awsUtils.AWSClients
 )
 
 func init() {
 	var e error
-	if dynamoDBClient, e = utils.NewDynamoDBClient(context.Background()); e != nil {
+	var ctx = context.Background()
+
+	if awsClients, e = awsUtils.NewAWSClients(ctx); e != nil {
 		log.Fatalf("Error: %v\n", e)
+
 	}
 }
 
@@ -30,7 +34,7 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	var scanOutput = &dynamodb.ScanOutput{}
 	var e error
 
-	if scanOutput, e = dynamoDBClient.Scan(ctx, scanInput); e != nil {
+	if scanOutput, e = awsClients.DynamoDB.Scan(ctx, scanInput); e != nil {
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 

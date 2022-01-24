@@ -1,15 +1,12 @@
-package utils
+package awsUtils
 
 import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
-	"os"
 	"strings"
 
 	repoTypes "github.com/MarioSimou/songs-local-server/backend/packages/types"
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
@@ -19,37 +16,6 @@ import (
 var (
 	S3_BUCKET_NAME = "songs-backend-bucket"
 )
-
-func NewS3Client(ctx context.Context) (*s3.Client, error) {
-	var e error
-	var cfg *aws.Config
-	var s3Endpoint = os.Getenv("AWS_S3_ENDPOINT")
-	var env repoTypes.EnvironmentType = os.Getenv("ENVIRONMENT")
-
-	if env == repoTypes.Dev && len(s3Endpoint) == 0 {
-		return nil, fmt.Errorf("error: environment '%s' with endpoint '%s'", env, s3Endpoint)
-	}
-
-	if cfg, e = GetAWSConfig(ctx, env, s3Endpoint); e != nil {
-		return nil, e
-	}
-
-	var fn = func(options *s3.Options) {
-		options.UsePathStyle = true
-	}
-	return s3.NewFromConfig(*cfg, fn), nil
-}
-
-func NewS3Uploader(ctx context.Context, fns ...func(*manager.Uploader)) (*manager.Uploader, error) {
-	var s3Client *s3.Client
-	var e error
-
-	if s3Client, e = NewS3Client(ctx); e != nil {
-		return nil, e
-	}
-
-	return manager.NewUploader(s3Client, fns...), nil
-}
 
 func HeadObject(ctx context.Context, key string, s3Client *s3.Client) error {
 	var e error
@@ -88,11 +54,11 @@ func DeleteObject(ctx context.Context, key string, s3Client *s3.Client) error {
 	return nil
 }
 
-func UploadObject(ctx context.Context, key string, m *Multipart, storageClass types.StorageClass, uploader *manager.Uploader) (*manager.UploadOutput, error) {
+func UploadObject(ctx context.Context, key string, body []byte, storageClass types.StorageClass, uploader *manager.Uploader) (*manager.UploadOutput, error) {
 	var putObjectInput = &s3.PutObjectInput{
 		Bucket:       &S3_BUCKET_NAME,
 		Key:          &key,
-		Body:         bytes.NewReader(m.Body),
+		Body:         bytes.NewReader(body),
 		StorageClass: storageClass,
 	}
 

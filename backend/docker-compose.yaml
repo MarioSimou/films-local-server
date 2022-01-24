@@ -1,8 +1,7 @@
 version: '3.9'
 
 volumes:
-  dynamodb-data: 
-  s3-data:
+  aws-data:
 networks:
   backend-network:
     name: songs-local-server-backend-network 
@@ -20,7 +19,28 @@ services:
     networks:
       - backend-network
     depends_on: 
-      - dynamodb
+      - aws
+  aws:
+    container_name: aws
+    image: localstack/localstack-full:0.13.2
+    ports:
+      - "3001:3001"
+    environment:
+      - LOCALSTACK_SERVICES=dynamodb,s3,sns
+      - DATA_DIR=/tmp/localstack/data
+      - DYNAMODB_SHARE_DB=1
+      - EDGE_PORT=3001
+      - DEBUG=0
+    volumes:
+      - type: volume
+        source: aws-data
+        target: /tmp/localstack/data
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+    networks:
+      - backend-network     
+
   dynamodb-admin:
     container_name: dynamodb-admin
     image: aaronshaf/dynamodb-admin:latest
@@ -28,45 +48,12 @@ services:
       - "3002:3002"
     environment:
       - PORT=3002
-      - DYNAMO_ENDPOINT=http://dynamodb:3001
+      - DYNAMO_ENDPOINT=http://aws:3001
     networks:
       - backend-network
     depends_on:
-      - dynamodb
-  dynamodb:
-    container_name: dynamodb
-    image: localstack/localstack-full:0.13.2
-    ports:
-      - "3001:3001"
-    environment:
-      - LOCALSTACK_SERVICES=dynamodb
-      - DATA_DIR=/tmp/localstack/data
-      - DYNAMODB_SHARE_DB=1
-      - EDGE_PORT=3001
-      - DEBUG=0
-    volumes:
-      - type: volume
-        source: dynamodb-data
-        target: /tmp/localstack/data
-    networks:
-      - backend-network    
-  s3:
-    container_name: s3
-    image: localstack/localstack-full:0.13.2
-    ports:
-      - "3003:3003"
-    environment:
-      - LOCALSTACK_SERVICES=s3
-      - DATA_DIR=/tmp/localstack/data
-      - EDGE_PORT=3003
-      - DEBUG=0
-    volumes:
-      - type: volume
-        source: s3-data
-        target: /tmp/localstack/data
-    networks:
-      - backend-network    
-
+      - aws
+      
   # api:
   #   container_name: api
   #   image: cnadiminti/aws-sam-local:latest

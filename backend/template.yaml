@@ -8,12 +8,15 @@ Parameters:
     AllowedValues:
       - dev
       - prod
-  AWSS3Endpoint:
+  AWSEndpoint:
     Type: String
     Default: ''
-  AWSDynamoDBEndpoint: 
+  AWSSnsUploadTopicArn:
     Type: String
     Default: ''
+
+Conditions:
+  isProduction: !Equals [ !Ref Environment, prod ]
 
 Globals:
   Function:
@@ -23,14 +26,14 @@ Globals:
     Environment:
       Variables:
         ENVIRONMENT: !Ref Environment
-        AWS_S3_ENDPOINT: !Ref AWSS3Endpoint
-        AWS_DYNAMODB_ENDPOINT: !Ref AWSDynamoDBEndpoint
+        AWS_ENDPOINT: !Ref AWSEndpoint
+        AWS_SNS_UPLOAD_TOPIC_ARN: !If [ isProduction, !Ref UploadSNSTopic, !Ref AWSSnsUploadTopicArn]
   Api:
     BinaryMediaTypes: ['*~1*']
-    Cors:
-      AllowOrigin: "'http://localhost:8080'"
-      AllowHeaders: "'Content-Type'"
-      AllowMethods: "'GET,PUT,POST,DELETE,OPTIONS'"
+  #   Cors:
+  #     AllowOrigin: "'http://localhost:8080'"
+  #     AllowHeaders: "'Content-Type'"
+  #     AllowMethods: "'GET,PUT,POST,DELETE,OPTIONS'"
   
 Resources:
   ProjectRole:
@@ -46,6 +49,7 @@ Resources:
                 - s3.amazonaws.com
                 - apigateway.amazonaws.com
                 - lambda.amazonaws.com
+                - sns.amazonaws.com
             Action:
               - 'sts:AssumeRole'
       Policies:
@@ -70,6 +74,7 @@ Resources:
                   - s3:GetObjectAcl
                   - s3:PutObject
                   - s3:ListBucket
+                  - sns:Publish
                 Effect: Allow
                 Resource: '*'
   SongsBackendBucket:
@@ -226,12 +231,52 @@ Resources:
               Method: DELETE
               RestApiId:
                 Ref: RestApi
+  UploadSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: songs-local-server-upload-topic
+      TopicName: songs-local-server-upload-topic
+  UploadLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Responsible to upload assets in s3 bucket
+      Handler: main
+      CodeUri: functions/upload
+      Role: !GetAtt ProjectRole.Arn
+      Events:
+        SNSEvent:
+          Type: SNS
+          Properties:
+            Topic: !Ref UploadSNSTopic
+            SqsSubscription: false
+  # DeleteSNSTopic:
+  #   Type: AWS::SNS::Topic
+  #   Properties:
+  #     DisplayName: songs-local-server-delete-topic
+  #     TopicName: songs-local-server-delete-topic
+  # DeleteLambda:
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     Description: Responsible to delete assets from s3 bucket
+  #     Handler: main
+  #     CodeUri: functions/delete
+  #     Role: !GetAtt ProjectRole.Arn
+  #     Events:
+  #       SNSEvent:
+  #         Type: SNS
+  #         Properties:
+  #           Topic: !Ref DeleteSNSTopic
+  #           SqsSubscription: false
 
 Outputs:
   ProjectRoleName:
     Value: !Ref ProjectRole
   ProjectRoleArn:
     Value: !GetAtt ProjectRole.Arn
+  UploadTopicArn:
+    Value: !Ref UploadSNSTopic
+  # DeleteTopicArn:
+  #   Value: !Ref DeleteSNSTopic
   SongsTableId:
     Description: Songs table id
     Value: !Ref SongsTable
