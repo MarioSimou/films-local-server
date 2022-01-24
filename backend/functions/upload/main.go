@@ -65,10 +65,10 @@ func Handler(ctx context.Context, event events.SNSEvent) error {
 	}
 
 	switch message.Field {
-	case repoTypes.ImageField:
+	case repoTypes.LocationField:
 		currentSong.Location = uploadObjectOutput.Location
-		currentSong.Location = repoTypes.Done
-	case repoTypes.LocatioField:
+		currentSong.LocationStatus = repoTypes.Done
+	case repoTypes.ImageField:
 		currentSong.Image = uploadObjectOutput.Location
 		currentSong.ImageStatus = repoTypes.Done
 	default:

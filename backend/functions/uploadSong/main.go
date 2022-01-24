@@ -53,7 +53,7 @@ func handler(ctx context.Context, event events.APIGatewayProxyRequest) (events.A
 
 	var songBucketKey = utils.GetBucketKey(repoTypes.SongType, currentSong.GUID, m.Ext)
 
-	if _, e := awsUtils.UploadOne(ctx, awsClients.SNS, songBucketKey, repoTypes.LocatioField, m.Body); e != nil {
+	if _, e := awsUtils.UploadOne(ctx, awsClients.SNS, songBucketKey, repoTypes.LocationField, m.Body); e != nil {
 		return utils.NewAPIResponse(http.StatusInternalServerError, e), nil
 	}
 

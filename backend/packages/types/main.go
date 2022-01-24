@@ -13,7 +13,7 @@ var (
 	ImageType             FileType        = "image"
 	SongType              FileType        = "song"
 	ImageField            Field           = "image"
-	LocatioField          Field           = "location"
+	LocationField         Field           = "location"
 	Production            EnvironmentType = "prod"
 	Dev                   EnvironmentType = "dev"
 	SongsTableName                        = "songs"
