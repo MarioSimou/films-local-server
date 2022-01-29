@@ -1,24 +1,27 @@
 package utils
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"strings"
 )
 
 func Base64Decode(body string) ([]byte, error) {
 	return base64.StdEncoding.DecodeString(body)
 }
 
-func DecodeEventBody(body string, item interface{}) error {
-	var bf []byte
+func DecodeEventBody(body string, item interface{}, isBase64Encoded bool) error {
 	var e error
+	var bf []byte
 
-	if bf, e = Base64Decode(body); e != nil {
-		return e
+	if isBase64Encoded {
+		if bf, e = Base64Decode(body); e != nil {
+			return e
+		}
+		body = string(bf)
 	}
 
-	if e := json.NewDecoder(bytes.NewReader(bf)).Decode(item); e != nil {
+	if e := json.NewDecoder(strings.NewReader(body)).Decode(item); e != nil {
 		return e
 	}
 	return nil

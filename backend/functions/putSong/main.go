@@ -39,7 +39,7 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	var currentSong *repoTypes.Song
 	var e error
 
-	if e := utils.DecodeEventBody(req.Body, &body); e != nil {
+	if e := utils.DecodeEventBody(req.Body, &body, req.IsBase64Encoded); e != nil {
 		return utils.NewAPIResponse(http.StatusBadRequest, e), nil
 	}
 	if e := validate.Var(songGUID, "required,uuid4"); e != nil {

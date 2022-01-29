@@ -65,20 +65,4 @@ services:
         source: s3-data
         target: /tmp/localstack/data
     networks:
-      - backend-network    
-
-  # api:
-  #   container_name: api
-  #   image: cnadiminti/aws-sam-local:latest
-  #   volumes:
-  #     - type: bind
-  #       source: .
-  #       target: /var/opt
-  #     - type: bind
-  #       source: /var/run/docker.sock
-  #       target: /var/run/docker.sock
-  #   ports:
-  #     - "3000:3000"
-  #   networks:
-  #     - backend-network
-  #   command: local start-api --parameter-values Environment=dev AWSS3Endpoint='http://s3:4566' AWSDynamoDBEndpoint='http://dynamodb:4566'
+      - backend-network

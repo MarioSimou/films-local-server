@@ -26,7 +26,7 @@ Globals:
         AWS_S3_ENDPOINT: !Ref AWSS3Endpoint
         AWS_DYNAMODB_ENDPOINT: !Ref AWSDynamoDBEndpoint
   Api:
-    BinaryMediaTypes: ['*~1*']
+    BinaryMediaTypes: ['multipart/form-data']
     Cors:
       AllowOrigin: "'http://localhost:8080'"
       AllowHeaders: "'Content-Type'"

@@ -42,7 +42,7 @@ func handler(ctx context.Context, event events.APIGatewayProxyRequest) (events.A
 	var newSong *repoTypes.Song
 	var e error
 
-	if e := utils.DecodeEventBody(event.Body, &reqBody); e != nil {
+	if e := utils.DecodeEventBody(event.Body, &reqBody, event.IsBase64Encoded); e != nil {
 		return utils.NewAPIResponse(http.StatusBadRequest, e), nil
 	}
 
