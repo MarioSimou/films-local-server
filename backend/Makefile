@@ -7,7 +7,7 @@ build: gomodgen
 	env GOARCH=amd64 GOOS=linux go build -ldflags="-s -w" -o bin/postSong internal/functions/postSong/main.go
 	env GOARCH=amd64 GOOS=linux go build -ldflags="-s -w" -o bin/putSong internal/functions/putSong/main.go
 	env GOARCH=amd64 GOOS=linux go build -ldflags="-s -w" -o bin/deleteSong internal/functions/deleteSong/main.go
-	env GOARCH=amd64 GOOS=linux go build -ldflags="-s -w" -o bin/uploadSong internal/functions/putSong/main.go
+	env GOARCH=amd64 GOOS=linux go build -ldflags="-s -w" -o bin/uploadSong internal/functions/uploadSong/main.go
 	env GOARCH=amd64 GOOS=linux go build -ldflags="-s -w" -o bin/putSongImage internal/functions/putSongImage/main.go
 
 clean:

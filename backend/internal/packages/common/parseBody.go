@@ -2,9 +2,9 @@ package common
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"mime"
 	"mime/multipart"
@@ -63,18 +63,18 @@ type MultipartResponse struct {
 	Ext       string
 }
 
-func ParseMultipartContentType(headers map[string]string, body string) (*MultipartResponse, error) {
-	var contentType string
-	var ok bool
+func ParseMultipartContentType(headers map[string]string, body string, isBase64Encoded bool) (*MultipartResponse, error) {
 	var mediaType string
 	var mediaParams map[string]string
+	var contentType = headers["Content-Type"]
 	var e error
 
-	if contentType, ok = headers["Content-Type"]; !ok {
-		return nil, fmt.Errorf("error: Unable to find content-type")
-	}
-	if ok := strings.Contains(contentType, "multipart/form-data"); !ok {
-		return nil, fmt.Errorf("error: Invalid multipart content type")
+	if isBase64Encoded {
+		var bf []byte
+		if bf, e = base64.StdEncoding.DecodeString(body); e != nil {
+			return nil, e
+		}
+		body = string(bf)
 	}
 
 	if mediaType, mediaParams, e = mime.ParseMediaType(contentType); e != nil {
@@ -86,13 +86,14 @@ func ParseMultipartContentType(headers map[string]string, body string) (*Multipa
 	var bf = bytes.NewBuffer(nil)
 	var iteration = 0
 	var filename string
+
 	for {
 		var part *multipart.Part
 		var partBf []byte
 		var e error
 
 		if part, e = multipartReader.NextPart(); e != nil {
-			if e == io.EOF {
+			if strings.Contains(e.Error(), "EOF") {
 				break
 			}
 			return nil, e

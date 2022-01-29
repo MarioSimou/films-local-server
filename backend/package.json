@@ -5,14 +5,17 @@
   "main": "index.js",
   "scripts": {
     "start:dev": "sls offline start --useDocker",
-    "deploy": "sls deploy --verbose"
+    "deploy:dev": "STAGE=dev sls deploy --verbose",
+    "deploy:prod": "STAGE=prod sls deploy --verbose",
+    "remove:dev": "STAGE=dev sls remove",
+    "remove:prod": "STAGE=prod sls remove"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "serverless": "^3.0.0",
+    "serverless-apigw-binary": "^0.4.4",
     "serverless-offline": "^8.3.1"
-  },
-  "dependencies": {}
+  }
 }

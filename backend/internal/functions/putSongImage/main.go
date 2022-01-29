@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"path/filepath"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	awsUtils "github.com/others/songs-local-server-sls/internal/packages/aws"
@@ -12,32 +13,19 @@ import (
 	"github.com/others/songs-local-server-sls/internal/packages/models"
 )
 
-type Body struct {
-	Image string `json:"image"`
-}
-
 func Handler(awsClients awsUtils.IAWSClients) common.LambdaHandler {
 	return func(event common.Event) (common.Response, error) {
-		fmt.Println("isbase64: ", event.IsBase64Encoded)
 		var guid *string
 		var e error
 		var currentSong *models.Song
 		var ctx, _ = common.NewContext(nil)
 		var multipartResponse *common.MultipartResponse
 
-		fmt.Println("SAMPLE: ", event.Body[:500])
-
 		if guid, e = common.GetGUIDFromParameters(event.PathParameters); e != nil {
 			return common.NewHTTPResponse(http.StatusBadRequest, e)
 		}
 
-		// var body Body
-		// if e := common.ParseBody(event.Body, &body); e != nil {
-		// 	return common.NewHTTPResponse(http.StatusBadRequest, e)
-		// }
-		// var bf, _ = base64.RawStdEncoding.DecodeString(body.Image)
-
-		if multipartResponse, e = common.ParseMultipartContentType(event.Headers, event.Body); e != nil {
+		if multipartResponse, e = common.ParseMultipartContentType(event.Headers, event.Body, event.IsBase64Encoded); e != nil {
 			return common.NewHTTPResponse(http.StatusBadRequest, e)
 		}
 
@@ -48,13 +36,13 @@ func Handler(awsClients awsUtils.IAWSClients) common.LambdaHandler {
 			return common.NewHTTPResponse(http.StatusInternalServerError, e)
 		}
 
-		var key = fmt.Sprintf("%s/image%s", currentSong.GUID, ".jpg")
-		var href *string
-		if href, e = awsClients.UploadOneObject(ctx, key, multipartResponse.Body); e != nil {
+		var key = fmt.Sprintf("%s/image%s", currentSong.GUID, filepath.Ext(multipartResponse.Ext))
+		var location *string
+		if location, e = awsClients.UploadOneObject(ctx, key, multipartResponse.Body); e != nil {
 			return common.NewHTTPResponse(http.StatusInternalServerError, e)
 		}
 
-		currentSong.Href = *href
+		currentSong.Image = *location
 
 		var newSong *models.Song
 		if newSong, e = awsClients.PutSongByGUID(ctx, currentSong.GUID, currentSong); e != nil {

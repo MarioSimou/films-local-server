@@ -49,6 +49,10 @@ func NewHTTPResponse(status int, data interface{}) (Response, error) {
 		return Response{
 			StatusCode: http.StatusBadRequest,
 			Body:       e.Error(),
+			Headers: map[string]string{
+				"Content-Type": "application/json",
+				"Accept":       "application/json",
+			},
 		}, nil
 	}
 

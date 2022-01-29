@@ -1,28 +1,41 @@
 service: songs-local-server-sls
+stage: 
 
 plugins:
   - serverless-offline
+  - serverless-apigw-binary
 
 frameworkVersion: '3'
 useDotenv: true
 
 params:
-  default:
-    bucketName: ${self:service}-bucket-${sls:stage}
-    dybamodbTableName: ${self:service}-songs
+  dev:
+    bucketName: ${self:service}-bucket-dev
+    dybamodbTableName: ${self:service}-songs-dev
+  prod:
+    bucketName: ${self:service}-bucket-prod
+    dybamodbTableName: ${self:service}-songs-prod
+
+custom:
+  apigwBinary:
+    types:
+      - 'multipart/form-data'
 
 provider:
   name: aws
   runtime: go1.x
   region: ${env:AWS_DEFAULT_REGION, "us-east-1"}
+  stage: ${env:STAGE,"dev"}
+  memorySize: 128
+  timeout: 10
   versionFunctions: false
   environment:
     AWS_S3_BUCKET_NAME: ${param:bucketName}
     AWS_DYNAMODB_TABLE_NAME: ${param:dybamodbTableName}
-    AWS_ENDPOINT: ${env:AWS_ENDPOINT}
-    AWS_ACCESS_KEY_ID: ${env:AWS_ACCESS_KEY_ID}
-    AWS_SECRET_ACCESS_KEY: ${env:AWS_SECRET_ACCESS_KEY}
-    AWS_DEFAULT_REGION: ${self:provider.region}
+    # AWS_ENDPOINT: ${env:AWS_ENDPOINT}
+    # AWS_ACCESS_KEY_ID: ${env:AWS_ACCESS_KEY_ID}
+    # AWS_SECRET_ACCESS_KEY: ${env:AWS_SECRET_ACCESS_KEY}
+    # AWS_DEFAULT_REGION: ${self:provider.region}
   iam:
     role: !GetAtt LambdaRole.Arn
 
@@ -35,45 +48,45 @@ functions:
   getSongs:
     handler: bin/getSongs
     events:
-      - httpApi:
+      - http:
           path: /api/v1/songs
           method: GET
   getSong:
     handler: bin/getSong
     events:
-      - httpApi:
+      - http:
           path: /api/v1/songs/{guid}
           method: GET
   postSong:
     handler: bin/postSong
     events:
-      - httpApi:
+      - http:
           path: /api/v1/songs
           method: POST
   putSong:
     handler: bin/putSong
     events:
-      - httpApi:
+      - http:
           path: /api/v1/songs/{guid}
           method: PUT
   deleteSong:
     handler: bin/deleteSong
     events:
-      - httpApi:
+      - http:
           path: /api/v1/songs/{guid}
           method: DELETE
-  # putSongImage:
-  #   handler: bin/putSongImage
-  #   events:
-  #     - httpApi:
-  #         path: /api/v1/songs/{guid}/image
-  #         method: PUT
-  # uploadSong:
-  #   handler: bin/uploadSong
-  #   events:
-  #     - httpApi:
-  #         path: /api/v1/songs/{guid}/upload
-  #         method: PUT
+  putSongImage:
+    handler: bin/putSongImage
+    events:
+      - http:
+          path: /api/v1/songs/{guid}/image
+          method: PUT
+  uploadSong:
+    handler: bin/uploadSong
+    events:
+      - http:
+          path: /api/v1/songs/{guid}/upload
+          method: PUT
 
 resources:
   Resources:
@@ -104,7 +117,10 @@ resources:
                       - logs:PutLogEvents
                       - lambda:InvokeFunction
                       - s3:GetObject
+                      - s3:GetObjectAcl
+                      - s3:HeadObject
                       - s3:PutObject
+                      - s3:PutObjectAcl
                       - s3:DeleteObject
                       - s3:ListBucket
                       - dynamodb:GetItem
@@ -136,9 +152,9 @@ resources:
             Version: '2012-10-17'
             Statement:
               - Sid: sid
-                Effect: Deny
+                Effect: Allow
                 Principal: '*'
                 Action:
-                  - 's3:*'
+                  - 's3:GetObject'
                 Resource:
                   - arn:aws:s3:::${param:bucketName}/*

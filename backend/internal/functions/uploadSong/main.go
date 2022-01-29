@@ -1,45 +1,70 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"path/filepath"
 
-	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	awsUtils "github.com/others/songs-local-server-sls/internal/packages/aws"
+	"github.com/others/songs-local-server-sls/internal/packages/common"
+	"github.com/others/songs-local-server-sls/internal/packages/models"
 )
 
-// Response is of type APIGatewayProxyResponse since we're leveraging the
-// AWS Lambda Proxy Request functionality (default behavior)
-//
-// https://serverless.com/framework/docs/providers/aws/events/apigateway/#lambda-proxy-integration
-type Response events.APIGatewayProxyResponse
+func Handler(awsClients awsUtils.IAWSClients) common.LambdaHandler {
+	return func(event common.Event) (common.Response, error) {
+		var guid *string
+		var e error
+		var currentSong *models.Song
+		var ctx, _ = common.NewContext(nil)
+		var multipartResponse *common.MultipartResponse
 
-// Handler is our lambda handler invoked by the `lambda.Start` function call
-func Handler(ctx context.Context) (Response, error) {
-	var buf bytes.Buffer
+		var l, _ = json.Marshal(event)
+		fmt.Println("EVENT: ", string(l))
 
-	body, err := json.Marshal(map[string]interface{}{
-		"message": "Go Serverless v1.0! Your function executed successfully!",
-	})
-	if err != nil {
-		return Response{StatusCode: 404}, err
+		if guid, e = common.GetGUIDFromParameters(event.PathParameters); e != nil {
+			return common.NewHTTPResponse(http.StatusBadRequest, e)
+		}
+
+		if multipartResponse, e = common.ParseMultipartContentType(event.Headers, event.Body, event.IsBase64Encoded); e != nil {
+			return common.NewHTTPResponse(http.StatusBadRequest, e)
+		}
+
+		if currentSong, e = awsClients.GetSongByGUID(ctx, *guid); e != nil {
+			if e == awsUtils.ErrSongNotFound {
+				return common.NewHTTPResponse(http.StatusInternalServerError, e)
+			}
+			return common.NewHTTPResponse(http.StatusInternalServerError, e)
+		}
+
+		var key = fmt.Sprintf("%s/song%s", currentSong.GUID, filepath.Ext(multipartResponse.Ext))
+		var location *string
+		if location, e = awsClients.UploadOneObject(ctx, key, multipartResponse.Body); e != nil {
+			return common.NewHTTPResponse(http.StatusInternalServerError, e)
+		}
+
+		currentSong.Href = *location
+
+		var newSong *models.Song
+		if newSong, e = awsClients.PutSongByGUID(ctx, currentSong.GUID, currentSong); e != nil {
+			return common.NewHTTPResponse(http.StatusInternalServerError, e)
+		}
+
+		return common.NewHTTPResponse(http.StatusOK, newSong)
 	}
-	json.HTMLEscape(&buf, body)
-
-	resp := Response{
-		StatusCode:      200,
-		IsBase64Encoded: false,
-		Body:            buf.String(),
-		Headers: map[string]string{
-			"Content-Type":           "application/json",
-			"X-MyCompany-Func-Reply": "hello-handler",
-		},
-	}
-
-	return resp, nil
 }
 
 func main() {
-	lambda.Start(Handler)
+	var ctx = context.Background()
+	var awsClients awsUtils.IAWSClients
+	var e error
+
+	if awsClients, e = awsUtils.NewAWSClients(ctx); e != nil {
+		log.Fatalf("error: %v\n", e)
+	}
+
+	lambda.Start(common.WithAWS(ctx, awsClients, Handler))
 }

@@ -33,6 +33,7 @@ func Handler(awsClients awsUtils.IAWSClients) common.LambdaHandler {
 
 		if len(currentSong.Image) > 0 {
 			var imageKey = fmt.Sprintf("%s/image%s", currentSong.GUID, filepath.Ext(currentSong.Image))
+			fmt.Println("Image key: ", imageKey)
 			if e := awsClients.DeleteOneObject(ctx, imageKey); e != nil {
 				return common.NewHTTPResponse(http.StatusInternalServerError, nil)
 			}
@@ -40,6 +41,8 @@ func Handler(awsClients awsUtils.IAWSClients) common.LambdaHandler {
 
 		if len(currentSong.Href) > 0 {
 			var songKey = fmt.Sprintf("%s/song%s", currentSong.GUID, filepath.Ext(currentSong.Href))
+			fmt.Println("song key: ", songKey)
+
 			if e := awsClients.DeleteOneObject(ctx, songKey); e != nil {
 				return common.NewHTTPResponse(http.StatusInternalServerError, nil)
 			}
