@@ -30,6 +30,7 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 .env.production
+.env
 # vercel
 .vercel
 
@@ -37,3 +38,4 @@ yarn-error.log*
 *.tsbuildinfo
 
 .aws-sam/
+bin/

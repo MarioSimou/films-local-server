@@ -1,84 +1,40 @@
 version: '3.9'
 
-volumes:
-  dynamodb-data: 
-  s3-data:
 networks:
-  backend-network:
-    name: songs-local-server-backend-network 
+  backend:
+    name: songs-local-server-sls-backend-network
+volumes:
+  aws-data:
 
 services:
-  watcher:
-    container_name: watcher
-    build:
-      context: .
-      dockerfile: ./images/watcher.dockerfile
-    volumes:
-      - type: bind
-        source: .
-        target: /watcher
-    networks:
-      - backend-network
-    depends_on: 
-      - dynamodb
-  dynamodb-admin:
-    container_name: dynamodb-admin
-    image: aaronshaf/dynamodb-admin:latest
+  aws:
+    container_name: songs-local-server-sls-aws
+    image: localstack/localstack-full:0.13.3
     ports:
-      - "3002:3002"
+      - 4566:4566
     environment:
-      - PORT=3002
-      - DYNAMO_ENDPOINT=http://dynamodb:3001
-    networks:
-      - backend-network
-    depends_on:
-      - dynamodb
-  dynamodb:
-    container_name: dynamodb
-    image: localstack/localstack-full:0.13.2
-    ports:
-      - "3001:3001"
-    environment:
-      - LOCALSTACK_SERVICES=dynamodb
+      - SERVICES=dynamodb,s3
+      - EDGE_PORT=4566
       - DATA_DIR=/tmp/localstack/data
       - DYNAMODB_SHARE_DB=1
-      - EDGE_PORT=3001
-      - DEBUG=0
     volumes:
       - type: volume
-        source: dynamodb-data
+        source: aws-data
         target: /tmp/localstack/data
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
     networks:
-      - backend-network    
-  s3:
-    container_name: s3
-    image: localstack/localstack-full:0.13.2
-    ports:
-      - "3003:3003"
-    environment:
-      - LOCALSTACK_SERVICES=s3
-      - DATA_DIR=/tmp/localstack/data
-      - EDGE_PORT=3003
-      - DEBUG=0
-    volumes:
-      - type: volume
-        source: s3-data
-        target: /tmp/localstack/data
-    networks:
-      - backend-network    
+      - backend
 
-  # api:
-  #   container_name: api
-  #   image: cnadiminti/aws-sam-local:latest
-  #   volumes:
-  #     - type: bind
-  #       source: .
-  #       target: /var/opt
-  #     - type: bind
-  #       source: /var/run/docker.sock
-  #       target: /var/run/docker.sock
-  #   ports:
-  #     - "3000:3000"
-  #   networks:
-  #     - backend-network
-  #   command: local start-api --parameter-values Environment=dev AWSS3Endpoint='http://s3:4566' AWSDynamoDBEndpoint='http://dynamodb:4566'
+  watcher:
+    container_name: songs-local-server-sls-watcher
+    build:
+      dockerfile: watcher.dockerfile
+      context: .
+    volumes:
+      - type: bind
+        source: $PWD
+        target: /go/src/app
+    networks:
+      - backend

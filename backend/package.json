@@ -1,0 +1,18 @@
+{
+  "name": "songs-local-server-sls",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start:dev": "sls offline start --useDocker",
+    "deploy": "sls deploy --verbose"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "serverless": "^3.0.0",
+    "serverless-offline": "^8.3.1"
+  },
+  "dependencies": {}
+}
