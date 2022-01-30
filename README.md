@@ -17,9 +17,11 @@ provider:
             - 'multipart/form-data'
 ```
 
-- If you get `illegal base64 data at input byte ...` while decoding a string, you most likely use the wrong decoder. [link](https://stackoverflow.com/questions/69753478/use-base64-stdencoding-or-base64-rawstdencoding-to-decode-base64-string-in-go). If you are wondering what is the difference between `StdEncoding` and `RawStdEncoding`, `RawStdEncoding` doesn't accept padding at the end of the string, while `StdEncoding` accepts.
+- If you get `illegal base64 data at input byte ...` while decoding a string, you most likely use the wrong decoder. [link](https://stackoverflow.com/questions/69753478/use-base64-stdencoding-or-base64-rawstdencoding-to-decode-base64-string-in-go). If you are wondering what is the difference between `StdEncoding` and `RawStdEncoding`, `RawStdEncoding` doesn't accept padding at the end of the string, while `StdEncoding` accepts.w
 - API Gateway has a limit of 5MB of the payload, which prevent users to upload files of a greater size. If that's an issue for your implementation, have a look on pre-signed URLs.
 - `serverless-apigw-binary` is intended for REST endpoint only.
+- When an http event is configured with `cors: true`, it configures a preflight `OPTIONS` response for your endpoint, which is then responsible to return the necessary `Access-Control-Allow-*` headers.
+- If you are working with binary data and the lambda function fails to extract the content-type header, please verify that is not a case-sensitiveness issue.  
 
 ### Resources
 - [Working with binary media types for REST APIs](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-payload-encodings.html)

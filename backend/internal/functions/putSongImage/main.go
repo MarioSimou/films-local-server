@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -20,6 +21,9 @@ func Handler(awsClients awsUtils.IAWSClients) common.LambdaHandler {
 		var currentSong *models.Song
 		var ctx, _ = common.NewContext(nil)
 		var multipartResponse *common.MultipartResponse
+
+		var l, _ = json.Marshal(event)
+		fmt.Println("EVENT: ", string(l))
 
 		if guid, e = common.GetGUIDFromParameters(event.PathParameters); e != nil {
 			return common.NewHTTPResponse(http.StatusBadRequest, e)

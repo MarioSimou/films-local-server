@@ -10,14 +10,14 @@ export type Song = {
     name: string
     description?: string
     image: string
-    location: string
+    href: string
 } & ITimestamp & IGUID
 
 export type PostSong = {
     name: string
     description: string
     image: File
-    location: File
+    href: File
 }
 export type PutSong = PostSong
 

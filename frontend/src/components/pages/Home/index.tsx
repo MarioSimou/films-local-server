@@ -1,72 +1,52 @@
-import {Grid, VStack, Heading, Collapse, Text} from '@chakra-ui/react'
-import type {GetStaticProps, NextPage} from 'next'
-import type {AxiosResponse} from 'axios'
-import type { Song, HTTPResponse } from '@types'
-import {httpClient, getBackendURL, isHTTPError} from '@utils'
+import React from 'react'
+import {Grid, VStack, Heading, Collapse, Text, useToast, Spinner} from '@chakra-ui/react'
+import type {NextPage} from 'next'
+import type { Song } from '@types'
+import { useSong } from '@hooks'
 import SongCard from '@components/pages/Home/components/SongCard'
 
-export type Props = {
-    songs: Song[]
-}
+const Home: NextPage = () => {
+    const [songs, setSongs] = React.useState<Song[]>([])
+    const {getSongs, isLoading} = useSong()
+    const toast = useToast({
+        position: 'bottom-right',
+        isClosable: true,
+        title: 'Home',
+        status: 'error',
+    })
 
-const Home: NextPage<Props> = ({songs}) => {
-    const isSongs = songs.length > 0
+    React.useEffect(() => {
+        const fetchSongs = async () => {
+            const [e, songs] = await getSongs()
+
+            if(e && e.message !== "err: songs not found"){
+                return toast({description: e.message})
+            }
+
+            setSongs(() => songs ?? [])
+        }
+        fetchSongs()
+        return () => setSongs([])
+    }, [getSongs])
 
     return (
         <VStack bg="gray.100" w="100%" minH="calc( 100vh - 84px)">
             <VStack p="2rem" w="100%" maxW="1200px" alignItems="flex-start">
                 <Heading mb="1rem" fontSize="1.75rem">Your songs</Heading>
-                <Collapse in={!isSongs}>
+                {isLoading && <Spinner size="lg" alignSelf="center"/>}
+                <Collapse in={songs.length == 0 && !isLoading}>
                     <Text>Songs not found. Please insert one</Text>
                 </Collapse>
-                <Collapse in={isSongs}>
+                <Collapse in={songs.length !== 0}>
                     <Grid templateColumns="repeat(auto-fill, minmax(250px, 1fr))" gridGap="1rem">
                         {songs.map(song => {
-                            return (
-                                <SongCard key={song.guid} song={song}/>
-                            )
+                            return (<SongCard key={song.guid} song={song}/>)
                         })}
                     </Grid>
                 </Collapse>
             </VStack>
         </VStack>
     )
-}
-
-export const getStaticProps: GetStaticProps = async () => {
-    try {
-        const {data}: AxiosResponse<HTTPResponse<Song[]>> = await  httpClient({
-            url: getBackendURL('/api/v1/songs'),
-            method: 'GET',
-        })
-
-        if(!data.success){
-            throw new Error(data.message)
-        }
-    
-        const songs = data.status === 404 ? [] : data.data
-    
-        return {
-            props: {
-                songs,
-            },
-            revalidate: 1
-        }
-    }catch(e: any){
-        if(isHTTPError(e?.response?.data)){
-            if(e.response.data.status === 404){
-                return {
-                    props: {
-                        songs: []
-                    },
-                    revalidate: 1,        
-                }
-            }
-        }
-
-        throw e
-    }
-
 }
 
 export default Home

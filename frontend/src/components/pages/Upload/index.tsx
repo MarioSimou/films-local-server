@@ -38,7 +38,7 @@ const Upload = () => {
             error: '',
             value: undefined,
         },
-        location: {
+        href: {
             touched: false,
             error: '',
             value: undefined,
@@ -57,7 +57,7 @@ const Upload = () => {
     }, [setFileValue])
 
     const onUploadSong = React.useCallback(async () => {
-        if(!fields.name.value || !fields.description.value || !fileFields.image.value || !fileFields.location.value) {
+        if(!fields.name.value || !fields.description.value || !fileFields.image.value || !fileFields.href.value) {
             return toast({description: 'Please make sure that you set a name, image and a song video.'})
         }
 
@@ -65,7 +65,7 @@ const Upload = () => {
             name: fields.name.value,
             description: fields.description.value,
             image: fileFields.image.value,
-            location: fileFields.location.value,
+            href: fileFields.href.value,
         })
 
         if(e){
@@ -74,7 +74,7 @@ const Upload = () => {
 
         toast({description: "The song has been succesfully uploaded!", status: "success"})
         router.push('/')
-    }, [fields.name.value, fields.description.value, fileFields.image.value, fileFields.location.value, toast, router, postSong])
+    }, [fields.name.value, fields.description.value, fileFields.image.value, fileFields.href.value, toast, router, postSong])
 
     return (
         <Flex flexDirection="column" alignItems="center" minH="calc(100vh - 84px)" bg="gray.100">
@@ -90,9 +90,9 @@ const Upload = () => {
                         <FileInput id="image" subtitle="Select an image to upload" btnText="Upload an image" value={fileFields.image.value} onChangeFile={onChangeFile}>
                             {fileFields.image.value && <Img src={URL.createObjectURL(fileFields.image.value)} alt="song-image" w="300px" h="200px"/>}
                         </FileInput>
-                        <FileInput accept="audio/*" id="location" subtitle="Select a song to upload" btnText="Upload a song" value={fileFields.location.value} onChangeFile={onChangeFile}>
-                            {fileFields.location.value && <video width="360px" height="240px" controls>
-                                <source src={URL.createObjectURL(fileFields.location.value)} type={fileFields.location.value?.type}/>
+                        <FileInput accept="audio/*" id="href" subtitle="Select a song to upload" btnText="Upload a song" value={fileFields.href.value} onChangeFile={onChangeFile}>
+                            {fileFields.href.value && <video width="360px" height="240px" controls>
+                                <source src={URL.createObjectURL(fileFields.href.value)} type={fileFields.href.value?.type}/>
                             </video>}                        
                         </FileInput>
                         <Button isLoading={isLoading} onClick={onUploadSong} alignSelf="flex-start">Upload</Button>

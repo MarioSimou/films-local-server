@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	awsUtils "github.com/others/songs-local-server-sls/internal/packages/aws"
@@ -44,14 +45,17 @@ func NewHTTPResponse(status int, data interface{}) (Response, error) {
 	var bf []byte
 	var e error
 	var body = NewResponseBody(status, data)
+	var accessControlAllowOrigin = os.Getenv("ACCESS_CONTROL_ALLOW_ORIGIN")
 
 	if bf, e = json.Marshal(body); e != nil {
 		return Response{
 			StatusCode: http.StatusBadRequest,
 			Body:       e.Error(),
 			Headers: map[string]string{
-				"Content-Type": "application/json",
-				"Accept":       "application/json",
+				"Content-Type":                 "application/json",
+				"Accept":                       "application/json",
+				"Access-Control-Allow-Origin":  accessControlAllowOrigin,
+				"Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS,HEAD",
 			},
 		}, nil
 	}
@@ -59,5 +63,11 @@ func NewHTTPResponse(status int, data interface{}) (Response, error) {
 	return Response{
 		StatusCode: status,
 		Body:       string(bf),
+		Headers: map[string]string{
+			"Content-Type":                 "application/json",
+			"Accept":                       "application/json",
+			"Access-Control-Allow-Origin":  accessControlAllowOrigin,
+			"Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS,HEAD",
+		},
 	}, nil
 }

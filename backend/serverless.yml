@@ -3,23 +3,21 @@ stage:
 
 plugins:
   - serverless-offline
-  - serverless-apigw-binary
 
 frameworkVersion: '3'
 useDotenv: true
 
 params:
   dev:
+    webAppBucketName: www.songs-web-server-dev.com
     bucketName: ${self:service}-bucket-dev
     dybamodbTableName: ${self:service}-songs-dev
+    accessControlAllowOrigin: '*'
   prod:
+    webAppBucketName: www.songs-web-server-prod.com
     bucketName: ${self:service}-bucket-prod
     dybamodbTableName: ${self:service}-songs-prod
-
-custom:
-  apigwBinary:
-    types:
-      - 'multipart/form-data'
+    accessControlAllowOrigin: !GetAtt WebAppBucket.WebsiteURL 
 
 provider:
   name: aws
@@ -32,13 +30,16 @@ provider:
   environment:
     AWS_S3_BUCKET_NAME: ${param:bucketName}
     AWS_DYNAMODB_TABLE_NAME: ${param:dybamodbTableName}
+    ACCESS_CONTROL_ALLOW_ORIGIN: ${param:accessControlAllowOrigin}
     # AWS_ENDPOINT: ${env:AWS_ENDPOINT}
     # AWS_ACCESS_KEY_ID: ${env:AWS_ACCESS_KEY_ID}
     # AWS_SECRET_ACCESS_KEY: ${env:AWS_SECRET_ACCESS_KEY}
     # AWS_DEFAULT_REGION: ${self:provider.region}
   iam:
     role: !GetAtt LambdaRole.Arn
-
+  apiGateway:
+    binaryMediaTypes:
+      - 'multipart/form-data'
 package:
   patterns:
     - '!./**'
@@ -51,42 +52,51 @@ functions:
       - http:
           path: /api/v1/songs
           method: GET
+          cors: true
   getSong:
     handler: bin/getSong
     events:
       - http:
           path: /api/v1/songs/{guid}
           method: GET
+          cors: true
   postSong:
     handler: bin/postSong
     events:
       - http:
           path: /api/v1/songs
           method: POST
+          cors: true
+
   putSong:
     handler: bin/putSong
     events:
       - http:
           path: /api/v1/songs/{guid}
           method: PUT
+          cors: true
+
   deleteSong:
     handler: bin/deleteSong
     events:
       - http:
           path: /api/v1/songs/{guid}
           method: DELETE
+          cors: true
   putSongImage:
     handler: bin/putSongImage
     events:
       - http:
           path: /api/v1/songs/{guid}/image
           method: PUT
+          cors: true
   uploadSong:
     handler: bin/uploadSong
     events:
       - http:
           path: /api/v1/songs/{guid}/upload
           method: PUT
+          cors: true
 
 resources:
   Resources:
@@ -139,11 +149,43 @@ resources:
             - AttributeName: GUID
               AttributeType: S
           BillingMode: PAY_PER_REQUEST
+      WebAppBucket:
+        Type: AWS::S3::Bucket
+        Properties:
+          BucketName: ${param:webAppBucketName}
+          AccessControl: PublicRead
+          VersioningConfiguration:
+            Status: Enabled
+          WebsiteConfiguration:
+            IndexDocument: index.html
+            ErrorDocument: 404.html
+      WebAppBucketPolicy:
+        Type: AWS::S3::BucketPolicy
+        Properties:
+          Bucket: !Ref WebAppBucket
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: sid
+                Effect: Allow
+                Principal: '*'
+                Action:
+                  - 's3:GetObject'
+                Resource:
+                  - arn:aws:s3:::${param:webAppBucketName}/*
       S3Bucket:
         Type: AWS::S3::Bucket
         Properties:
           BucketName: ${param:bucketName}
           AccessControl: PublicRead
+          CorsConfiguration:
+            CorsRules:
+              - Id: Allow Web App to Load Assets
+                AllowedOrigins: 
+                  - ${param:accessControlAllowOrigin}
+                AllowedMethods: 
+                  - GET
+                MaxAge: 86400
       S3BucketPolicy:
         Type: AWS::S3::BucketPolicy
         Properties:
@@ -158,3 +200,6 @@ resources:
                   - 's3:GetObject'
                 Resource:
                   - arn:aws:s3:::${param:bucketName}/*
+  Outputs:
+    WebsiteURL:
+      Value: !GetAtt WebAppBucket.WebsiteURL

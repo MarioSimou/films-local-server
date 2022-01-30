@@ -63,10 +63,20 @@ type MultipartResponse struct {
 	Ext       string
 }
 
+func GetContentType(headers map[string]string) *string {
+	if contentType, ok := headers["Content-Type"]; ok {
+		return &contentType
+	}
+	if contentType, ok := headers["content-type"]; ok {
+		return &contentType
+	}
+	return nil
+}
+
 func ParseMultipartContentType(headers map[string]string, body string, isBase64Encoded bool) (*MultipartResponse, error) {
 	var mediaType string
 	var mediaParams map[string]string
-	var contentType = headers["Content-Type"]
+	var contentType *string
 	var e error
 
 	if isBase64Encoded {
@@ -77,7 +87,11 @@ func ParseMultipartContentType(headers map[string]string, body string, isBase64E
 		body = string(bf)
 	}
 
-	if mediaType, mediaParams, e = mime.ParseMediaType(contentType); e != nil {
+	if contentType = GetContentType(headers); contentType == nil {
+		return nil, fmt.Errorf("err: content type header is missing")
+	}
+
+	if mediaType, mediaParams, e = mime.ParseMediaType(*contentType); e != nil {
 		return nil, e
 	}
 

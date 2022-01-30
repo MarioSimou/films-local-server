@@ -9,7 +9,7 @@ import FileInput from '@components/shared/FileInput'
 export type EditFormProps = {
     isOpen: boolean
     onClose: () => void
-    song: Omit<Song, 'location' | 'image'> & {location: File, image: File},
+    song: Omit<Song, 'href' | 'image'> & {href: File, image: File},
 }
 
 const EditForm = ({isOpen, onClose, song}: EditFormProps) => {
@@ -39,8 +39,8 @@ const EditForm = ({isOpen, onClose, song}: EditFormProps) => {
             touched: false,
             error: '',
         },
-        location: {
-            value: song.location,
+        href: {
+            value: song.href,
             touched: false,
             error: ''
         }
@@ -58,7 +58,7 @@ const EditForm = ({isOpen, onClose, song}: EditFormProps) => {
     }, [setFileValue])
     
     const onUpdateSong = async () => {
-        const isTouched = fields.name.touched || fields.description.touched || fileFields.image.touched || fileFields.location.touched
+        const isTouched = fields.name.touched || fields.description.touched || fileFields.image.touched || fileFields.href.touched
  
         if(!isTouched){
             return toast({description: "We didn't notice any change on the song structure. Please provide some changes."})
@@ -67,7 +67,7 @@ const EditForm = ({isOpen, onClose, song}: EditFormProps) => {
             name: fields.name.value,
             description: fields.description.value,
             image: fileFields.image.value,
-            location: fileFields.location.value,
+            href: fileFields.href.value,
         })
 
         if(e){
@@ -91,9 +91,9 @@ const EditForm = ({isOpen, onClose, song}: EditFormProps) => {
                         {song.image && <FileInput bg="gray.50" id="image" subtitle="Select an image to upload" btnText="Upload an image" value={fileFields.image.value} onChangeFile={onChangeFile}>
                                 <Img w="360px" h="240px" src={URL.createObjectURL(fileFields.image.value)} type={fileFields.image.value?.type}/>
                             </FileInput>}
-                        {song.location && <FileInput bg="gray.50" accept="audio/*" id="location" subtitle="Select a song to upload" btnText="Upload a song" value={fileFields.location.value} onChangeFile={onChangeFile}>
+                        {song.href && <FileInput bg="gray.50" accept="audio/*" id="href" subtitle="Select a song to upload" btnText="Upload a song" value={fileFields.href.value} onChangeFile={onChangeFile}>
                             <audio controls>
-                                <source src={URL.createObjectURL(fileFields.location.value)} type={fileFields.location.value?.type}/>
+                                <source src={URL.createObjectURL(fileFields.href.value)} type={fileFields.href.value?.type}/>
                             </audio>
                         </FileInput>}
                     </VStack>

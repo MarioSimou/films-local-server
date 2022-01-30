@@ -4,7 +4,9 @@
   "scripts": {
     "start:dev": "next dev -p 8080",
     "start:prod": "next start -p 8080",
-    "build:prod": "next build",
+    "build:prod": "next build && next export -o build",
+    "upload:dev": "aws s3 sync ./build s3://www.songs-web-server-dev.com",
+    "upload:prod": "aws s3 sync ./build s3://www.songs-web-server-prod.com",
     "lint": "next lint"
   },
   "dependencies": {
