@@ -1,0 +1,7 @@
+export {default as deleteSong} from '@functions/deleteSong'
+export {default as getSong} from '@functions/getSong'
+export {default as getSongs} from '@functions/getSongs'
+export {default as postSong} from '@functions/postSong'
+export {default as putSong} from '@functions/putSong'
+export {default as putImageSong} from '@functions/putImageSong'
+export {default as uploadSong} from '@functions/uploadSong'

@@ -1,0 +1,81 @@
+service: 'songs-local-server-backend'
+
+frameworkVersion: '3'
+plugins:
+  - serverless-esbuild
+  - serverless-offline
+provider:
+  name: 'aws'
+  runtime: 'nodejs14.x'
+  memorySize: 512
+  environment:
+    AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
+    NODE_OPTIONS: '--enable-source-maps --stack-trace-limit=1000'
+  apiGateway:
+    minimumCompressionSize: 1024
+    shouldStartNameWithService: true
+
+package:
+  individually: true
+custom:
+  esbuild:
+    bundle: true
+    minify: false
+    sourcemap: true
+    exclude:
+      - aws-sdk
+    target: node14
+    platform: node
+    concurrency: 10
+functions:
+  GetSongs:
+    handler: ./src/functions/index.getSongs
+    events:
+      - http:
+          method: GET
+          path: /api/v1/songs
+  GetSong:
+    handler: ./src/functions/index.getSong
+    events:
+      - http:
+          method: GET
+          path: /api/v1/songs/{guid}
+  PostSong:
+    handler: ./src/functions/index.postSong
+    events:
+      - http:
+          method: POST
+          path: /api/v1/songs
+  PutSong:
+    handler: ./src/functions/index.putSong
+    events:
+      - http:
+          method: PUT
+          path: /api/v1/songs/{guid}
+  PutImageSong:
+    handler: ./src/functions/index.putImageSong
+    events:
+      - http:
+          method: PUT
+          path: /api/v1/songs/{guid}/image
+  UploadSong:
+    handler: ./src/functions/index.uploadSong
+    events:
+      - http:
+          method: PUT
+          path: /api/v1/songs/{guid}/upload
+  DeleteSong:
+    handler: ./src/functions/index.deleteSong
+    events:
+      - http:
+          method: DELETE
+          path: /api/v1/songs/{guid}
+  # hello:
+  #   handler: ./src/functions/index.main
+  #   events:
+  #     - http:
+  #         method: POST
+  #         path: /hello
+  #         request:
+  #           schemas:
+  #             application/json: ${file(./src/functions/hello/schema.ts)} 

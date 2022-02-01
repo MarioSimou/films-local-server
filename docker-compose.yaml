@@ -1,0 +1,44 @@
+version: '3.9'
+
+# networks:
+#   backend:
+#     name: songs-local-server-backend
+
+volumes:
+  aws-data:
+
+services:
+  api-gateway:
+    container_name: songs-local-server-backed-api-gateway
+    build:
+      dockerfile: ./dockerfiles/api-gateway.dockerfile
+      context: ./backend
+    volumes:
+      - type: bind
+        source: ./backend
+        target: /app
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+    ports:
+      - "3000:3000"
+    network_mode: host
+    # networks:
+    #   - backend
+  aws:
+    container_name: songs-local-server-backend-aws
+    image: localstack/localstack-light:0.13.2
+    environment:
+      - SERVICES=s3,dynamodb
+      - EDGE_PORT=4566
+      - DYNAMODB_SHARE_DB=1
+    ports:
+      - "4566:4566"
+    volumes:
+      - type: volume
+        source: aws-data
+        target: /tmp/localstack/data
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+    network_mode: host
