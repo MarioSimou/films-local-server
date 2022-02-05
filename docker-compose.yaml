@@ -47,3 +47,19 @@ services:
         source: /var/run/docker.sock
         target: /var/run/docker.sock
     network_mode: host
+  app:
+    container_name: songs-web-app
+    build:
+      dockerfile: app.dockerfile
+      context: ./frontend
+    ports:
+      - "8080:8080"
+    env_file:
+      ./frontend/.env.development
+    volumes:
+      - type: bind
+        source: ./frontend
+        target: /app
+    network_mode: host
+    depends_on:
+      - api-gateway

@@ -1,12 +1,18 @@
-import type { Handler, APIGatewayProxyEventPathParameters, APIGatewayProxyEventQueryStringParameters } from '@libs/types'
+import type { Handler, APIGatewayProxyEventPathParameters, APIGatewayProxyEventQueryStringParameters, APIGatewayProxyResponse } from '@libs/types'
 import type { APIGatewayProxyEvent } from 'aws-lambda'
 import jsonBodyParser from '@middy/http-json-body-parser'
 import middy from '@middy/core'
 import type { MiddlewareObj } from '@middy/core'
+import cors from '@middy/http-cors'
 import { parse } from 'aws-multipart-parser'
 
 export const newHandler = <T, S = APIGatewayProxyEventPathParameters, Q = APIGatewayProxyEventQueryStringParameters>(handler: Handler<T, S, Q>, ...middlewares: MiddlewareObj[]  ) => middy(handler).use([
     jsonBodyParser(),
+    cors({
+        origins: [ process.env.ALLOW_ORIGIN ],
+        methods: 'GET,POST,PUT,DELETE,OPTIONS,PATCH',
+        maxAge: 86400,
+    }),
     ...middlewares,
 ])
 
@@ -61,13 +67,13 @@ const newResponse = <T>(status: StatusCode, data: T | string): HTTPResponse<T> =
     }
 }
 
-export const formatJSONResponse = <T = string>(statusCode: StatusCode, body?: T) => {
+export const formatJSONResponse = <T = string>(statusCode: StatusCode, body?: T): APIGatewayProxyResponse => {
     if(!body){
         return {statusCode, body: ""}
     }
   return {
     statusCode,
-    body: JSON.stringify(newResponse<T>(statusCode, body))
+    body: JSON.stringify(newResponse<T>(statusCode, body)),
   }
 }
 
