@@ -13,7 +13,7 @@ import { fetchFile } from '@utils'
 
 const SongPage: NextPage = () => {
     const [song, setSongs] = React.useState<Song | undefined>(undefined)
-    const {deletSong, isLoading, getSong} = useSong()
+    const {deleteSong, isLoading, getSong} = useSong()
     const toast = useToast({
         isClosable: true,
         title: 'Delete',
@@ -36,13 +36,13 @@ const SongPage: NextPage = () => {
             return 
         }
 
-        const [e] = await deletSong(song.guid)
+        const [e] = await deleteSong(song.guid)
         if(e){
             return toast({description: e.message})
         }
         toast({description: 'The song has been succesfully deleted', status: 'success'})
         return router.push('/')
-    },[router, toast, song, deletSong])
+    },[router, toast, song, deleteSong])
 
     React.useEffect(() => {
         const fetchSongAndImages = async () => {

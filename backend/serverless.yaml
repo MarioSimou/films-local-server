@@ -4,16 +4,34 @@ frameworkVersion: '3'
 plugins:
   - serverless-esbuild
   - serverless-offline
+
+params:
+  dev:
+    songsTableName: ${self:service}-songs-dev
+    assetsBucketName: ${self:service}-asssets-bucket-dev
+    webAppBucketName: www.songs-webapp-dev.com
+  prod:
+    songsTableName: ${self:service}-songs-prod
+    assetsBucketName: ${self:service}-assets-bucket-prod
+    webAppBucketName: www.songs-webapp-prod.com
+
 provider:
   name: 'aws'
   runtime: 'nodejs14.x'
-  memorySize: 512
+  memorySize: 128
   environment:
     AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
+    AWS_STAGE: ${sls:stage}
+    AWS_DYNAMODB_SONGS_TABLE_NAME: ${param:songsTableName}
+    AWS_S3_BUCKET_NAME: ${param:assetsBucketName}
     NODE_OPTIONS: '--enable-source-maps --stack-trace-limit=1000'
   apiGateway:
     minimumCompressionSize: 1024
     shouldStartNameWithService: true
+    binaryMediaTypes:
+      - 'multipart/form-data'
+  iam:
+    role: !GetAtt BasicRole.Arn 
 
 package:
   individually: true
@@ -27,6 +45,7 @@ custom:
     target: node14
     platform: node
     concurrency: 10
+
 functions:
   GetSongs:
     handler: ./src/functions/index.getSongs
@@ -70,12 +89,118 @@ functions:
       - http:
           method: DELETE
           path: /api/v1/songs/{guid}
-  # hello:
-  #   handler: ./src/functions/index.main
-  #   events:
-  #     - http:
-  #         method: POST
-  #         path: /hello
-  #         request:
-  #           schemas:
-  #             application/json: ${file(./src/functions/hello/schema.ts)} 
+
+resources:
+  Resources:      
+    BasicRole:
+      Type: AWS::IAM::Role
+      Properties:
+        Description: Role used by lambda function to manage business logic
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Action: 
+              - sts:AssumeRole
+              Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+        Policies:
+          - PolicyName: BasicRolePolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Resource: '*'
+                  Action:
+                    - 's3:GetObject'
+                    - 's3:GetObjectAcl'
+                    - 's3:PutObject'
+                    - 's3:PutObjectAcl'
+                    - 's3:DeleteObject'
+                    - 's3:ListBucket'
+                    - 'dynamodb:GetItem'
+                    - 'dynamodb:DescribeTable'
+                    - 'dynamodb:Scan'
+                    - 'dynamodb:PutItem'
+                    - 'dynamodb:DeleteItem'
+                    - 'lambda:InvokeFunction'
+                    - 'logs:CreateLogStream'
+                    - 'logs:CreateLogGroup'
+                    - 'logs:PutLogEvents'
+        Tags:
+          - Key: env
+            Value: ${sls:stage}
+    SongsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${param:songsTableName}
+        AttributeDefinitions:
+          - AttributeName: guid
+            AttributeType: S
+        KeySchema:
+          - AttributeName: guid
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 3
+          WriteCapacityUnits: 3
+        Tags:
+          - Key: env
+            Value: ${sls:stage}
+    AssetsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${param:assetsBucketName}
+        AccessControl: PublicRead
+        CorsConfiguration:
+          CorsRules:
+            - AllowedMethods:
+                - GET
+              AllowedOrigins:
+                - !GetAtt WebAppBucket.WebsiteURL
+              MaxAge: 86400
+        Tags:
+          - Key: env
+            Value: ${sls:stage}
+    AssetsBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref AssetsBucket
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Action:
+              - 's3:GetObject'
+              Effect: Allow
+              Principal: '*'
+              Resource: !Join ['', [ !GetAtt AssetsBucket.Arn, '/*']]
+    WebAppBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${param:webAppBucketName}
+        AccessControl: PublicRead
+        WebsiteConfiguration:
+          IndexDocument: index.html
+          ErrorDocument: 404.html
+        VersioningConfiguration:
+          Status: Enabled
+        Tags:
+          - Key: env
+            Value: ${sls:stage}
+    WebAppBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref WebAppBucket
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Action:
+              - 's3:GetObject'
+              Effect: Allow
+              Principal: '*'
+              Resource: !Join ['', [!GetAtt WebAppBucket.Arn, '/*']]
+  Outputs:
+    WebAppURL:
+      Value: !GetAtt WebAppBucket.WebsiteURL
+    AssetsBucketDomain:
+      Value: !GetAtt AssetsBucket.RegionalDomainName

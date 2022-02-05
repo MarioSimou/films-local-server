@@ -4,19 +4,31 @@
   "description": "Serverless aws-nodejs-typescript template",
   "main": "serverless.ts",
   "scripts": {
-    "start:dev": "sls offline start"
+    "start:dev": "sls offline start",
+    "deploy:dev": "sls deploy --verbose",
+    "deploy:prod": "sls deploy --stage prod --verbose",
+    "remove:dev": "sls remove --verbose",
+    "remove:prod": "sls remove --stage prod --verbose"
   },
   "engines": {
     "node": ">=14.15.0"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.49.0",
+    "@aws-sdk/client-s3": "^3.49.0",
     "@middy/core": "^2.5.3",
-    "@middy/http-json-body-parser": "^2.5.3"
+    "@middy/http-json-body-parser": "^2.5.3",
+    "@middy/validator": "^2.5.7",
+    "aws-multipart-parser": "^0.2.1",
+    "joi": "^17.6.0",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "@serverless/typescript": "^3.0.0",
     "@types/aws-lambda": "^8.10.71",
+    "@types/joi": "^17.2.3",
     "@types/node": "^14.14.25",
+    "@types/uuid": "^8.3.4",
     "esbuild": "^0.14.11",
     "json-schema-to-ts": "^1.5.0",
     "serverless": "^3.1.0",

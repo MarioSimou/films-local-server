@@ -59,7 +59,7 @@ export const useSong = () => {
         }
     }, [])
 
-    const deletSong = React.useCallback(async (songGUID: string): Promise<DeleteSongResponse>  => {
+    const deleteSong = React.useCallback(async (songGUID: string): Promise<DeleteSongResponse>  => {
         try {
             setIsLoading(() => true)
             await httpClient({
@@ -84,7 +84,10 @@ export const useSong = () => {
             const postSongResponse: AxiosResponse<HTTPResponse<Song>> = await httpClient({
                 url: getBackendURL('/api/v1/songs'),
                 method: 'POST',
-                data: JSON.stringify({name, description})
+                data: JSON.stringify({name, description}),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             })
     
             if(!postSongResponse.data.success){
@@ -134,7 +137,10 @@ export const useSong = () => {
             const postSongResponse: AxiosResponse<HTTPResponse<Song>> = await httpClient({
                 method: 'PUT',
                 url: getBackendURL(`/api/v1/songs/${songGUID}`), 
-                data: putSongPayload
+                data: putSongPayload,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             })
     
             if(!postSongResponse.data.success){
@@ -181,6 +187,6 @@ export const useSong = () => {
         putSong,
         postSong,
         isLoading,
-        deletSong
+        deleteSong
     }
 }

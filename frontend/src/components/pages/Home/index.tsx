@@ -19,7 +19,7 @@ const Home: NextPage = () => {
         const fetchSongs = async () => {
             const [e, songs] = await getSongs()
 
-            if(e && e.message !== "err: songs not found"){
+            if(e && !/not found/.test(e.message)){
                 return toast({description: e.message})
             }
 
