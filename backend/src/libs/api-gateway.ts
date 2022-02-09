@@ -5,11 +5,9 @@ import middy from '@middy/core'
 import type { MiddlewareObj } from '@middy/core'
 import cors from '@middy/http-cors'
 import { parse } from 'aws-multipart-parser'
-import auth  from '@libs/middlewares/auth'
 
 export const newHandler = <T, S = APIGatewayProxyEventPathParameters, Q = APIGatewayProxyEventQueryStringParameters>(handler: Handler<T, S, Q>, ...middlewares: MiddlewareObj[]  ) => middy(handler).use([
     jsonBodyParser(),
-    auth(),
     cors({
         origins: [ process.env.ALLOW_ORIGIN ],
         methods: 'GET,POST,PUT,DELETE,OPTIONS,PATCH',

@@ -1,7 +1,7 @@
 import {decode, verify, Jwt} from 'jsonwebtoken'
 import jwksRsa from 'jwks-rsa'
 import { promisify } from 'util'
-import type { APIGatewayProxyRequest, APIGatewayProxyEventPathParameters, APIGatewayProxyEventQueryStringParameters, Result } from '@libs/types'
+import type { Result, AuthEvent } from '@libs/types'
 
 const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN
 
@@ -22,13 +22,12 @@ const getSigningKey = promisify(jwksClient.getSigningKey)
 const ErrTokenNotFound = new Error('error: token not found')
 const ErrPayloadNotFound = new Error('error: payload not found')
 
-export const getToken = <S = unknown, P = APIGatewayProxyEventPathParameters, Q = APIGatewayProxyEventQueryStringParameters>(event: APIGatewayProxyRequest<S,P,Q>): Result<string> => {
-    const authorization = event.headers['Authorization'] ?? event.headers['authorization']
-    if(!authorization){
+export const getToken = ({authorizationToken}: AuthEvent): Result<string> => {
+    if(!authorizationToken){
         return [ErrTokenNotFound]
     }
 
-    const [,token] = authorization.match(/^Bearer (.*)$/)
+    const [,token] = authorizationToken.match(/^Bearer (.*)$/)
     if(!token){
         return [ErrTokenNotFound]
     }
@@ -47,7 +46,7 @@ export const getJWKsPublicKey = async (token: string): Promise<Result<string>> =
     return [undefined, publicKey]
 }
 
-export const verifyToken = async <S = unknown, P = APIGatewayProxyEventPathParameters, Q = APIGatewayProxyEventQueryStringParameters>(event: APIGatewayProxyRequest<S,P,Q>): Promise<Result<Jwt>> => {
+export const verifyToken = async (event: AuthEvent): Promise<Result<Jwt>> => {
     try {
         const [getTokenError, jwksToken] = getToken(event)
         if(getTokenError){
@@ -62,7 +61,6 @@ export const verifyToken = async <S = unknown, P = APIGatewayProxyEventPathParam
         const jwtToken= await verify(jwksToken, publicKey, {complete: true}) as Jwt
         return [undefined, jwtToken]
     }catch(e){
-        console.log("error: ", e)
         return [e]
     }
 }

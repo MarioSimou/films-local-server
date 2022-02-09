@@ -52,49 +52,57 @@ custom:
     concurrency: 10
 
 functions:
+  Auth:
+    handler: ./src/functions/index.auth
   GetSongs:
     handler: ./src/functions/index.getSongs
     events:
       - http:
           method: GET
           path: /api/v1/songs
+          authorizer: Auth
   GetSong:
     handler: ./src/functions/index.getSong
     events:
       - http:
           method: GET
           path: /api/v1/songs/{guid}
+          authorizer: Auth
   PostSong:
     handler: ./src/functions/index.postSong
     events:
       - http:
           method: POST
           path: /api/v1/songs
+          authorizer: Auth
   PutSong:
     handler: ./src/functions/index.putSong
     events:
       - http:
           method: PUT
           path: /api/v1/songs/{guid}
+          authorizer: Auth
   PutImageSong:
     handler: ./src/functions/index.putImageSong
     events:
       - http:
           method: PUT
           path: /api/v1/songs/{guid}/image
+          authorizer: Auth
   UploadSong:
     handler: ./src/functions/index.uploadSong
     events:
       - http:
           method: PUT
           path: /api/v1/songs/{guid}/upload
+          authorizer: Auth
   DeleteSong:
     handler: ./src/functions/index.deleteSong
     events:
       - http:
           method: DELETE
           path: /api/v1/songs/{guid}
-
+          authorizer: Auth
 resources:
   Resources:      
     BasicRole:
