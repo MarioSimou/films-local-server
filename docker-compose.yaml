@@ -1,9 +1,5 @@
 version: '3.9'
 
-# networks:
-#   backend:
-#     name: songs-local-server-backend
-
 volumes:
   aws-data:
 
@@ -27,8 +23,6 @@ services:
       - ./backend/.env.dev
     environment:
       - AWS_NODEJS_CONNECTION_REUSE_ENABLED=1
-    # networks:
-    #   - backend
   aws:
     container_name: songs-local-server-backend-aws
     image: localstack/localstack-light:0.13.2

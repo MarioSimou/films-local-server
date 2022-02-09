@@ -5,8 +5,10 @@ import { useFormFields, useSong } from '@hooks'
 import { useRouter } from 'next/router'
 import {Button} from '@components/shared/Button'
 import FileInput from '@components/shared/FileInput'
+import { useAuth0 } from '@auth0/auth0-react'
 
 const Upload = () => {
+    const { isAuthenticated, isLoading: isAuthLoading } = useAuth0()
     const {isLoading, postSong} = useSong()
     const router = useRouter()
     const toast = useToast({
@@ -75,6 +77,12 @@ const Upload = () => {
         toast({description: "The song has been succesfully uploaded!", status: "success"})
         router.push('/')
     }, [fields.name.value, fields.description.value, fileFields.image.value, fileFields.href.value, toast, router, postSong])
+
+    React.useEffect(() => {
+        if(!isAuthenticated && !isAuthLoading){
+            router.push('/sign-in')
+        }
+    }, [isAuthenticated, router, isAuthLoading])
 
     return (
         <Flex flexDirection="column" alignItems="center" minH="calc(100vh - 84px)" bg="gray.100">

@@ -4,12 +4,13 @@
   "scripts": {
     "start:dev": "next dev -p 8080",
     "start:prod": "next start -p 8080",
-    "build:prod": "next build && next export -o build",
+    "build:prod": "rm -rf build 2> /dev/null && next build && next export -o build",
     "upload:dev": "aws s3 sync ./build s3://www.songs-webapp-dev.com",
     "upload:prod": "aws s3 sync ./build s3://www.songs-webapp-prod.com",
     "lint": "next lint"
   },
   "dependencies": {
+    "@auth0/auth0-react": "^1.9.0",
     "@chakra-ui/react": "^1.7.3",
     "@emotion/react": "^11.7.1",
     "@emotion/styled": "^11.6.0",

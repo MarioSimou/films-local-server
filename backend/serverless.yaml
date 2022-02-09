@@ -5,6 +5,8 @@ plugins:
   - serverless-esbuild
   - serverless-offline
 
+useDotenv: true
+
 params:
   dev:
     songsTableName: ${self:service}-songs-dev
@@ -27,6 +29,7 @@ provider:
     AWS_S3_BUCKET_NAME: ${param:assetsBucketName}
     ALLOW_ORIGIN: ${param:allowOrigin}
     NODE_OPTIONS: '--enable-source-maps --stack-trace-limit=1000'
+    AUTH0_DOMAIN: ${env:AUTH0_DOMAIN}
   apiGateway:
     minimumCompressionSize: 1024
     shouldStartNameWithService: true

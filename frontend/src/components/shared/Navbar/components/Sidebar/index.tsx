@@ -1,6 +1,7 @@
 import React from 'react'
 import { Box, VStack, List, ListItem, Text, CloseButton } from '@chakra-ui/react'
 import {useRouter} from 'next/router'
+import { useAuth0 } from '@auth0/auth0-react'
 
 export type Props = {isOpen: boolean, onClose: () => void}
 
@@ -14,6 +15,7 @@ const SidebarItem = ({onClick, content}: {onClick: () => void, content: string})
 
 const Sidebar = ({isOpen, onClose}: Props) => {
     const router = useRouter()
+    const {isAuthenticated, loginWithRedirect, logout} = useAuth0()
     const left = isOpen ? "0vw": "-100vw"
     const onClickListItem = React.useCallback((href: string) => {
         return () => {
@@ -21,6 +23,8 @@ const Sidebar = ({isOpen, onClose}: Props) => {
             router.push(href)
         }
     }, [onClose, router])
+    const onClickLogout = () => logout({returnTo: router.basePath})
+    const onClickSignIn = () => loginWithRedirect({})
 
     return (
         <React.Fragment>
@@ -30,6 +34,8 @@ const Sidebar = ({isOpen, onClose}: Props) => {
                 <List color="text.200" letterSpacing="wide" w="100%">
                     <SidebarItem content="Home" onClick={onClickListItem('/')}/>
                     <SidebarItem content="Upload Song" onClick={onClickListItem('/upload')}/>
+                    {isAuthenticated && <SidebarItem content="Logout" onClick={onClickLogout}/>}
+                    {!isAuthenticated && <SidebarItem content="Sign In" onClick={onClickSignIn}/>}
                 </List>    
             </VStack>
         </React.Fragment>

@@ -1,5 +1,5 @@
 import React from 'react'
-import {Flex, VStack, Img, Heading, Grid, Link as ChakraLink, useToast, Spinner, Collapse} from '@chakra-ui/react'
+import {Flex, VStack, Img, Heading, Grid, Link as ChakraLink, useToast, Spinner} from '@chakra-ui/react'
 import type {NextPage} from 'next'
 import NextLink from 'next/link'
 import type { Song } from '@types'
@@ -7,12 +7,15 @@ import {format} from 'date-fns'
 import {ChakraButton} from '@components/shared/Button'
 import EditForm from '@components/pages/Song/components/EditForm'
 import Label from '@components/pages/Song/components/Label'
+import { useAuth0 } from '@auth0/auth0-react'
 import { useRouter } from 'next/router'
 import { useSong } from '@hooks'
 import { fetchFile } from '@utils'
 
 const SongPage: NextPage = () => {
     const [song, setSongs] = React.useState<Song | undefined>(undefined)
+    const { isAuthenticated, isLoading: isAuthLoading } = useAuth0()
+
     const {deleteSong, isLoading, getSong} = useSong()
     const toast = useToast({
         isClosable: true,
@@ -79,6 +82,12 @@ const SongPage: NextPage = () => {
         return () => setSongs(undefined)
     }, [router.query.guid, setSongs, getSong])
 
+    React.useEffect(() => {
+        if(!isAuthenticated && !isAuthLoading){
+            router.push('/sign-in')
+        }
+    }, [isAuthenticated, router, isAuthLoading])
+    
     return (
         <VStack bg="gray.100" w="100%" minH="calc( 100vh - 84px)" p="2rem 0">
             {!song && <Spinner size="lg"/>}

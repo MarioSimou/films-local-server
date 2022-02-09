@@ -4,10 +4,14 @@ import type {NextPage} from 'next'
 import type { Song } from '@types'
 import { useSong } from '@hooks'
 import SongCard from '@components/pages/Home/components/SongCard'
+import { useRouter } from 'next/router'
+import { useAuth0 } from '@auth0/auth0-react'
 
 const Home: NextPage = () => {
     const [songs, setSongs] = React.useState<Song[]>([])
     const {getSongs, isLoading} = useSong()
+    const { isAuthenticated, isLoading: isAuthLoading } = useAuth0()
+    const router = useRouter()
     const toast = useToast({
         position: 'bottom-right',
         isClosable: true,
@@ -28,6 +32,12 @@ const Home: NextPage = () => {
         fetchSongs()
         return () => setSongs([])
     }, [getSongs])
+
+    React.useEffect(() => {
+        if(!isAuthenticated && !isAuthLoading){
+            router.push('/sign-in')
+        }
+    }, [isAuthenticated, isAuthLoading, router]) 
 
     return (
         <VStack bg="gray.100" w="100%" minH="calc( 100vh - 84px)">
