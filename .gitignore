@@ -37,3 +37,5 @@ yarn-error.log*
 *.tsbuildinfo
 
 .aws-sam/
+node_modules/
+.esbuild/

@@ -1,0 +1,40 @@
+version: '3.9'
+
+volumes:
+  aws-data:
+services:
+  aws:
+    container_name: songs-serverless-backend-aws
+    image: localstack/localstack-light:0.14.0
+    environment:
+      - SERVICES=s3,sns,sqs,dynamodb
+      - EDGE_PORT=4566
+      - DATA_DIR=/tmp/localstack/data
+      - DYNAMODB_SHARE_DB=true
+      - DEBUG=false
+    ports:
+      - '4566:4566'
+    volumes:
+      - type: volume
+        source: aws-data
+        target: /tmp/localstack/data
+    network_mode: host
+  api-gateway:
+    container_name: songs-serverless-backend-api-gateway
+    image: songs-serverless-backend-api-gateway/dev
+    build:
+      dockerfile: api-gateway.dockerfile
+      context: .
+    ports:
+      - '3000:3000'
+      - '4002:4002'
+    volumes:
+      - type: bind
+        source: $PWD
+        target: /app
+      - type: bind
+        source: $HOME/.aws
+        target: /root/.aws
+    network_mode: host
+    depends_on:
+      - aws

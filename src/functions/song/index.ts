@@ -1,0 +1,7 @@
+export {handler as getSongs} from './getSongs'
+export {handler as getSong} from './getSong'
+export {handler as putSong} from './putSong'
+export {handler as postSong} from './postSong'
+export {handler as deleteSong} from './deleteSong'
+export {handler as uploadSong} from './uploadSong'
+export {handler as uploadSongImage} from './uploadSongImage'

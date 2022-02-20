@@ -1,0 +1,208 @@
+service: songs-serverless-backend
+frameworkVersion: '3'
+plugins:
+  - serverless-esbuild
+  - serverless-offline-sns
+  - serverless-offline-sqs
+  - serverless-offline
+
+custom:
+  serverless-offline:
+    host: 0.0.0.0
+  serverless-offline-sns:
+    sns-endpoint: http://localhost:4566
+  serverless-offline-sqs:
+    autoCreate: true
+    endpoint: http://localhost:4566
+
+  esbuild:
+    bundle: true
+    minify: false
+    sourcemap: true
+    exclude:
+      - aws-sdk
+    target: node14
+    platform: node
+    concurrency: 10
+
+params:
+  dev:
+    awsDynamoDBSongsTableName: ${self:service}-songs-dev
+    awsS3AssetsBucketName: ${self:service}-assets-dev
+    awsSNSUploadTopicName: ${self:service}-upload-assets-dev
+    awsSNSUploadTopicArn: 'arn:aws:sns:${aws:region}:000000000000:${param:awsSNSUploadTopicName}'
+    awsSNSDeleteTopicName: ${self:service}-delete-assets-dev
+    awsSNSDeleteTopicArn: 'arn:aws:sns:${aws:region}:000000000000:${param:awsSNSDeleteTopicName}'
+    awsEndpoint: http://localhost:4566
+  prod:
+    awsDynamoDBSongsTableName: ${self:service}-songs-prod
+    awsS3AssetsBucketName: ${self:service}-assets-prod
+    awsSNSUploadTopicName: ${self:service}-upload-assets-prod
+    awsSNSUploadTopicArn: 'arn:aws:sns:${aws:region}:${aws:accountId}:${param:awsSNSUploadTopicName}'
+    awsSNSDeleteTopicName: ${self:service}-delete-assets-prod
+    awsSNSDeleteTopicArn: 'arn:aws:sns:${aws:region}:${aws:accountId}:${param:awsSNSDeleteTopicName}'
+    awsEndpoint: ''
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  memorySize: 128
+  profile: serverless
+  apiGateway:
+    minimumCompressionSize: 1024
+    shouldStartNameWithService: true
+    binaryMediaTypes:
+      - 'multipart/form-data'
+  environment:
+    AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
+    NODE_OPTIONS: '--enable-source-maps --stack-trace-limit=1000'
+    AWS_ENDPOINT: ${param:awsEndpoint}
+    AWS_DYNAMODB_SONGS_TABLE_NAME: ${param:awsDynamoDBSongsTableName}
+    AWS_S3_ASSETS_BUCKET_NAME: ${param:awsS3AssetsBucketName}
+    AWS_SNS_UPLOAD_TOPIC_ARN: ${param:awsSNSUploadTopicArn}
+    AWS_SNS_DELETE_TOPIC_ARN: ${param:awsSNSDeleteTopicArn}
+  iam:
+    role: !GetAtt LambdaRole.Arn
+
+package:
+  individually: true
+functions:
+  GetSongs:
+    handler: ./src/functions/index.getSongs
+    events:
+      - http:
+          method: GET
+          path: /api/v1/songs
+  GetSong:
+    handler: ./src/functions/index.getSong
+    events:
+      - http:
+          method: GET
+          path: /api/v1/songs/{guid}
+  PostSong:
+    handler: ./src/functions/index.postSong
+    events:
+      - http:
+          method: POST
+          path: /api/v1/songs
+  PutSong:
+    handler: ./src/functions/index.putSong
+    events:
+      - http:
+          method: PUT
+          path: /api/v1/songs/{guid}
+  DeleteSong:
+    handler: ./src/functions/index.deleteSong
+    events:
+      - http:
+          method: DELETE
+          path: /api/v1/songs/{guid}
+  UploadSongImage:
+    handler: ./src/functions/index.uploadSongImage
+    events:
+      - http:
+          method: PUT
+          path: /api/v1/songs/{guid}/image
+  UploadSong:
+    handler: ./src/functions/index.uploadSong
+    events:
+      - http:
+          method: PUT
+          path: /api/v1/songs/{guid}/upload
+  UploadAssets:
+    handler: ./src/functions/index.uploadAssets
+    events:
+      - sns:
+          topicName: ${param:awsSNSUploadTopicName}
+          arn: !Ref UploadAssetsSNSTopic
+  DeleteAssets:
+    handler: ./src/functions/index.deleteAssets
+    events:
+      - sns:
+          topicName: ${param:awsSNSDeleteTopicName}
+          arn: !Ref DeleteAssetsSNSTopic
+resources:
+  Resources:
+    LambdaRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: LambdaRole
+        Description: Role used by lambda functions to interact with backend services
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+        Policies:
+          - PolicyName: LambdaRolePolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - s3:GetObject
+                    - s3:GetObjectAcl
+                    - s3:PutObject
+                    - s3:PutObjectAcl
+                    - s3:DeleteObject
+                    - s3:ListBucket
+                    - dynamodb:ListTables
+                    - dynamodb:GetItem
+                    - dynamodb:Scan
+                    - dynamodb:DeleteItem
+                    - dynamodb:PutItem
+                    - sns:Publish
+                    - lambda:InvokeFunction
+                  Resource: '*'
+    AssetsS3Bucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${param:awsS3AssetsBucketName}
+        AccessControl: Private
+    AssetsS3BucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref AssetsS3Bucket
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:GetObject
+              Principal: '*'
+              Resource: !Join ['', ['arn:aws:s3:::', !Ref AssetsS3Bucket, '/*']]
+    SongsTableName:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${param:awsDynamoDBSongsTableName}
+        AttributeDefinitions:
+          - AttributeName: guid
+            AttributeType: S
+        KeySchema:
+          - AttributeName: guid
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 3
+          WriteCapacityUnits: 3
+    UploadAssetsSNSTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: ${param:awsSNSUploadTopicName}
+    DeleteAssetsSNSTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: ${param:awsSNSDeleteTopicName}
+
+  Outputs:
+    UploadAssetsSNSTopicArn:
+      Value: !Ref UploadAssetsSNSTopic
+    DeleteAssetsSNSTopicArn:
+      Value: !Ref DeleteAssetsSNSTopic
+    AssetsS3BucketRegionalDomainName:
+      Value: !GetAtt AssetsS3Bucket.RegionalDomainName
+    AssetsS3BucketDomainName:
+      Value: !GetAtt AssetsS3Bucket.DomainName
